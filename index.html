@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#0f172a">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="روابطي">
+    <title>روابطي - مدير الروابط</title>
+
+    <link rel="manifest" href="./manifest.json">
+    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/192/1828/1828884.png">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: { cairo: ['Cairo', 'sans-serif'] },
+                    colors: { primary: '#3b82f6', secondary: '#8b5cf6', accent: '#06b6d4' }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body { font-family: 'Cairo', sans-serif; -webkit-tap-highlight-color: transparent; }
+        .glass { background: rgba(255,255,255,0.05); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); }
+        .card-hover { transition: all 0.3s cubic-bezier(0.4,0,0.2,1); }
+        .card-hover:hover { transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05); }
+        .slide-in { animation: slideIn 0.4s ease-out; }
+        @keyframes slideIn { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
+        .color-dot { width:20px; height:20px; border-radius:50%; cursor:pointer; border:2px solid transparent; transition:all 0.2s; }
+        .color-dot.active { border-color:#fff; box-shadow:0 0 0 2px #000; }
+        .dark .color-dot.active { border-color:#1f2937; box-shadow:0 0 0 2px #fff; }
+        .scrollbar-hide::-webkit-scrollbar { display:none; }
+        .scrollbar-hide { -ms-overflow-style:none; scrollbar-width:none; }
+        #installBtn { display:none; }
+        #installBtn.show { display:flex; }
+        .link-card { min-height: 0; }
+        .action-btn { 
+            width: 36px; height: 36px; border-radius: 8px; 
+            display: flex; align-items: center; justify-content: center;
+            transition: all 0.2s; font-size: 14px;
+            background: rgba(255,255,255,0.2);
+            color: #fff;
+            border: 1px solid rgba(255,255,255,0.3);
+            backdrop-filter: blur(4px);
+        }
+        .action-btn:hover { transform: scale(1.1); background: rgba(255,255,255,0.35); }
+        .action-btn.delete-btn:hover { background: rgba(239,68,68,0.3); border-color: rgba(239,68,68,0.5); }
+        .modal-backdrop {
+            opacity: 0; pointer-events: none; transition: opacity 0.3s ease;
+        }
+        .modal-backdrop.show { opacity: 1; pointer-events: auto; }
+        .modal-content {
+            transform: scale(0.95) translateY(10px); opacity: 0; transition: all 0.3s cubic-bezier(0.4,0,0.2,1);
+        }
+        .modal-backdrop.show .modal-content {
+            transform: scale(1) translateY(0); opacity: 1;
+        }
+        .favicon-img {
+            width: 28px;
+            height: 28px;
+            border-radius: 6px;
+            object-fit: cover;
+            background: #fff;
+            padding: 2px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .favicon-img-small {
+            width: 18px;
+            height: 18px;
+            border-radius: 4px;
+            object-fit: cover;
+            background: #fff;
+            padding: 1px;
+        }
+        .favicon-fallback {
+            width: 28px;
+            height: 28px;
+            border-radius: 6px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-size: 12px;
+            font-weight: bold;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+    </style>
+</head>
+<body class="bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-100 min-h-screen transition-colors duration-300">
+
+    <header class="sticky top-0 z-50 glass bg-white/80 dark:bg-gray-900/80 border-b border-gray-200 dark:border-gray-800">
+        <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-lg">
+                    <i class="fas fa-link text-white text-sm"></i>
+                </div>
+                <div>
+                    <h1 class="text-lg font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">روابطي</h1>
+                    <p class="text-xs text-gray-500 dark:text-gray-400" id="linksCount">0 رابط</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-2">
+                <button onclick="openAddModal()" class="w-9 h-9 rounded-xl bg-blue-600 hover:bg-blue-700 text-white flex items-center justify-center transition-colors shadow-lg shadow-blue-500/30" title="إضافة رابط جديد">
+                    <i class="fas fa-plus text-sm"></i>
+                </button>
+                <button onclick="toggleDarkMode()" class="w-9 h-9 rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 flex items-center justify-center transition-colors">
+                    <i class="fas fa-moon dark:hidden text-gray-600 text-sm"></i>
+                    <i class="fas fa-sun hidden dark:block text-yellow-400 text-sm"></i>
+                </button>
+                <button id="installBtn" onclick="installPWA()" class="gap-1.5 px-3 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium transition-colors items-center">
+                    <i class="fas fa-download text-xs"></i><span>تثبيت</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 py-4">
+
+        <!-- البحث والتصنيف -->
+        <div class="mb-4 flex flex-col sm:flex-row gap-3">
+            <div class="flex-1 relative">
+                <i class="fas fa-search absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs"></i>
+                <input type="text" id="searchInput" placeholder="ابحث في روابطك..." 
+                    class="w-full pr-9 pl-4 py-2 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all text-sm"
+                    oninput="filterLinks()">
+            </div>
+            <div class="flex gap-2 overflow-x-auto scrollbar-hide pb-1" id="categoryFilters">
+                <button onclick="filterByCategory('all')" class="category-btn active px-3 py-1.5 rounded-xl bg-blue-600 text-white text-xs font-medium whitespace-nowrap transition-all" data-cat="all">الكل</button>
+                <button onclick="filterByCategory('work')" class="category-btn px-3 py-1.5 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-xs font-medium whitespace-nowrap transition-all hover:bg-gray-50 dark:hover:bg-gray-700" data-cat="work"><i class="fas fa-briefcase ml-1 text-[10px]"></i>عمل</button>
+                <button onclick="filterByCategory('personal')" class="category-btn px-3 py-1.5 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-xs font-medium whitespace-nowrap transition-all hover:bg-gray-50 dark:hover:bg-gray-700" data-cat="personal"><i class="fas fa-user ml-1 text-[10px]"></i>شخصي</button>
+                <button onclick="filterByCategory('learning')" class="category-btn px-3 py-1.5 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-xs font-medium whitespace-nowrap transition-all hover:bg-gray-50 dark:hover:bg-gray-700" data-cat="learning"><i class="fas fa-graduation-cap ml-1 text-[10px]"></i>تعلم</button>
+                <button onclick="filterByCategory('entertainment')" class="category-btn px-3 py-1.5 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-xs font-medium whitespace-nowrap transition-all hover:bg-gray-50 dark:hover:bg-gray-700" data-cat="entertainment"><i class="fas fa-gamepad ml-1 text-[10px]"></i>ترفيه</button>
+                <button onclick="filterByCategory('other')" class="category-btn px-3 py-1.5 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-xs font-medium whitespace-nowrap transition-all hover:bg-gray-50 dark:hover:bg-gray-700" data-cat="other"><i class="fas fa-tag ml-1 text-[10px]"></i>أخرى</button>
+            </div>
+        </div>
+
+        <!-- الروابط المحفوظة -->
+        <div id="linksContainer" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 mb-6"></div>
+        <div id="emptyState" class="hidden text-center py-12 mb-6">
+            <div class="w-20 h-20 mx-auto mb-3 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center"><i class="fas fa-link text-3xl text-gray-300 dark:text-gray-600"></i></div>
+            <h3 class="text-lg font-bold text-gray-400 mb-1">لا توجد روابط</h3>
+            <p class="text-gray-400 text-sm">أضف رابطك الأول بالأسفل</p>
+        </div>
+
+        <!-- نسخ احتياطي واستعادة -->
+        <div class="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-4 mb-4 shadow-sm">
+            <h2 class="text-base font-bold mb-3 flex items-center gap-2"><i class="fas fa-database text-green-500 text-sm"></i> نسخ احتياطي واستعادة</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-xs font-medium mb-1.5 text-gray-600 dark:text-gray-400">تصدير البيانات</label>
+                    <button onclick="exportData()" class="w-full py-2 rounded-xl bg-green-600 hover:bg-green-700 text-white text-sm font-medium transition-all flex items-center justify-center gap-2">
+                        <i class="fas fa-download text-xs"></i> تحميل ملف النسخ الاحتياطي
+                    </button>
+                </div>
+                <div>
+                    <label class="block text-xs font-medium mb-1.5 text-gray-600 dark:text-gray-400">استيراد البيانات</label>
+                    <input type="file" id="importFile" accept=".json" onchange="importData(this)" class="hidden">
+                    <label for="importFile" class="w-full py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium transition-all flex items-center justify-center gap-2 cursor-pointer">
+                        <i class="fas fa-upload text-xs"></i> اختيار ملف للاستيراد
+                    </label>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- نافذة إضافة رابط منبثقة -->
+    <div id="addModal" class="fixed inset-0 z-50 modal-backdrop">
+        <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" onclick="closeAddModal()"></div>
+        <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full max-w-lg px-4">
+            <div class="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-6 shadow-2xl modal-content">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-bold flex items-center gap-2"><i class="fas fa-plus-circle text-blue-500"></i> إضافة رابط جديد</h3>
+                    <button onclick="closeAddModal()" class="w-8 h-8 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 flex items-center justify-center transition-colors">
+                        <i class="fas fa-times text-gray-500 text-xs"></i>
+                    </button>
+                </div>
+                <form id="addLinkForm" onsubmit="addLink(event)">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <label class="block text-sm font-medium mb-1.5 text-gray-600 dark:text-gray-400">الرابط <span class="text-red-500">*</span></label>
+                            <input type="url" id="linkUrl" required placeholder="https://example.com" 
+                                class="w-full px-4 py-2.5 rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all text-sm"
+                                onblur="autoFillName()">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-1.5 text-gray-600 dark:text-gray-400">الاسم <span class="text-red-500">*</span></label>
+                            <input type="text" id="linkName" required placeholder="اسم الموقع أو الصفحة" 
+                                class="w-full px-4 py-2.5 rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all text-sm">
+                        </div>
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium mb-1.5 text-gray-600 dark:text-gray-400">ملاحظات</label>
+                        <textarea id="linkNotes" rows="2" placeholder="أضف ملاحظات أو وصف للرابط..." 
+                            class="w-full px-4 py-2.5 rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all text-sm resize-none"></textarea>
+                    </div>
+                    <div class="flex flex-col sm:flex-row gap-4 mb-4">
+                        <div>
+                            <label class="block text-sm font-medium mb-2 text-gray-600 dark:text-gray-400">التصنيف</label>
+                            <div class="flex gap-2 flex-wrap">
+                                <label class="cursor-pointer"><input type="radio" name="category" value="work" class="hidden peer"><span class="px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-700 text-xs peer-checked:bg-blue-600 peer-checked:text-white transition-all border border-transparent peer-checked:border-blue-600"><i class="fas fa-briefcase ml-1"></i>عمل</span></label>
+                                <label class="cursor-pointer"><input type="radio" name="category" value="personal" class="hidden peer" checked><span class="px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-700 text-xs peer-checked:bg-green-600 peer-checked:text-white transition-all border border-transparent peer-checked:border-green-600"><i class="fas fa-user ml-1"></i>شخصي</span></label>
+                                <label class="cursor-pointer"><input type="radio" name="category" value="learning" class="hidden peer"><span class="px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-700 text-xs peer-checked:bg-purple-600 peer-checked:text-white transition-all border border-transparent peer-checked:border-purple-600"><i class="fas fa-graduation-cap ml-1"></i>تعلم</span></label>
+                                <label class="cursor-pointer"><input type="radio" name="category" value="entertainment" class="hidden peer"><span class="px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-700 text-xs peer-checked:bg-pink-600 peer-checked:text-white transition-all border border-transparent peer-checked:border-pink-600"><i class="fas fa-gamepad ml-1"></i>ترفيه</span></label>
+                                <label class="cursor-pointer"><input type="radio" name="category" value="other" class="hidden peer"><span class="px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-700 text-xs peer-checked:bg-gray-600 peer-checked:text-white transition-all border border-transparent peer-checked:border-gray-600"><i class="fas fa-tag ml-1"></i>أخرى</span></label>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-2 text-gray-600 dark:text-gray-400">لون البطاقة</label>
+                            <div class="flex gap-2">
+                                <div class="color-dot active bg-blue-500" onclick="selectColor(this,'blue')" data-color="blue"></div>
+                                <div class="color-dot bg-green-500" onclick="selectColor(this,'green')" data-color="green"></div>
+                                <div class="color-dot bg-purple-500" onclick="selectColor(this,'purple')" data-color="purple"></div>
+                                <div class="color-dot bg-pink-500" onclick="selectColor(this,'pink')" data-color="pink"></div>
+                                <div class="color-dot bg-orange-500" onclick="selectColor(this,'orange')" data-color="orange"></div>
+                                <div class="color-dot bg-red-500" onclick="selectColor(this,'red')" data-color="red"></div>
+                                <div class="color-dot bg-cyan-500" onclick="selectColor(this,'cyan')" data-color="cyan"></div>
+                                <div class="color-dot bg-gray-500" onclick="selectColor(this,'gray')" data-color="gray"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex gap-2">
+                        <button type="submit" class="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold py-3 px-6 rounded-xl transition-all transform hover:scale-[1.02] shadow-lg shadow-blue-500/25 flex items-center justify-center gap-2 text-sm"><i class="fas fa-plus"></i> إضافة الرابط</button>
+                        <button type="button" onclick="closeAddModal()" class="px-6 py-3 rounded-xl bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-300 font-medium transition-all text-sm">إلغاء</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div id="toast" class="fixed bottom-6 right-6 transform translate-y-20 opacity-0 transition-all duration-300 z-50">
+        <div class="bg-gray-800 dark:bg-white text-white dark:text-gray-900 px-6 py-3 rounded-xl shadow-2xl flex items-center gap-3">
+            <i id="toastIcon" class="fas fa-check-circle text-green-400 dark:text-green-600"></i>
+            <span id="toastMessage" class="font-medium text-sm">تمت العملية بنجاح</span>
+        </div>
+    </div>
+
+    <!-- نافذة تعديل رابط منبثقة -->
+    <div id="editModal" class="fixed inset-0 z-50 modal-backdrop">
+        <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" onclick="closeEditModal()"></div>
+        <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full max-w-lg px-4">
+            <div class="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-6 shadow-2xl modal-content">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-bold flex items-center gap-2"><i class="fas fa-pen text-blue-500"></i> تعديل الرابط</h3>
+                    <button onclick="closeEditModal()" class="w-8 h-8 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 flex items-center justify-center transition-colors">
+                        <i class="fas fa-times text-gray-500 text-xs"></i>
+                    </button>
+                </div>
+                <form id="editForm" onsubmit="saveEdit(event)">
+                    <input type="hidden" id="editId">
+                    <div class="space-y-4 mb-4">
+                        <div><label class="block text-sm font-medium mb-1 text-gray-600 dark:text-gray-400">الرابط</label><input type="url" id="editUrl" required class="w-full px-4 py-2.5 rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 focus:border-blue-500 outline-none text-sm"></div>
+                        <div><label class="block text-sm font-medium mb-1 text-gray-600 dark:text-gray-400">الاسم</label><input type="text" id="editName" required class="w-full px-4 py-2.5 rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 focus:border-blue-500 outline-none text-sm"></div>
+                        <div><label class="block text-sm font-medium mb-1 text-gray-600 dark:text-gray-400">ملاحظات</label><textarea id="editNotes" rows="2" class="w-full px-4 py-2.5 rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 focus:border-blue-500 outline-none text-sm resize-none"></textarea></div>
+                        <div><label class="block text-sm font-medium mb-2 text-gray-600 dark:text-gray-400">لون البطاقة</label>
+                            <div class="flex gap-2">
+                                <div class="color-dot bg-blue-500" onclick="selectEditColor(this,'blue')" data-edit-color="blue"></div>
+                                <div class="color-dot bg-green-500" onclick="selectEditColor(this,'green')" data-edit-color="green"></div>
+                                <div class="color-dot bg-purple-500" onclick="selectEditColor(this,'purple')" data-edit-color="purple"></div>
+                                <div class="color-dot bg-pink-500" onclick="selectEditColor(this,'pink')" data-edit-color="pink"></div>
+                                <div class="color-dot bg-orange-500" onclick="selectEditColor(this,'orange')" data-edit-color="orange"></div>
+                                <div class="color-dot bg-red-500" onclick="selectEditColor(this,'red')" data-edit-color="red"></div>
+                                <div class="color-dot bg-cyan-500" onclick="selectEditColor(this,'cyan')" data-edit-color="cyan"></div>
+                                <div class="color-dot bg-gray-500" onclick="selectEditColor(this,'gray')" data-edit-color="gray"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex gap-2">
+                        <button type="submit" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-xl transition-all text-sm">حفظ التغييرات</button>
+                        <button type="button" onclick="closeEditModal()" class="px-4 py-2.5 rounded-xl bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-300 font-medium transition-all text-sm">إلغاء</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <button onclick="scrollToTop()" class="fixed bottom-6 left-6 w-10 h-10 rounded-full bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-500/30 flex items-center justify-center transition-all z-40"><i class="fas fa-arrow-up text-sm"></i></button>
+
+    <script>
+        // Register Service Worker from file
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('./sw.js')
+                .then(reg => console.log('SW registered'))
+                .catch(err => console.log('SW error', err));
+        }
+
+        let links = JSON.parse(localStorage.getItem('myLinks')) || [];
+        let selectedColor = 'blue', editSelectedColor = 'blue', currentFilter = 'all', deferredPrompt = null;
+
+        const categoryConfig = {
+            work: {icon:'fa-briefcase', label:'عمل', color:'text-blue-500'},
+            personal: {icon:'fa-user', label:'شخصي', color:'text-green-500'},
+            learning: {icon:'fa-graduation-cap', label:'تعلم', color:'text-purple-500'},
+            entertainment: {icon:'fa-gamepad', label:'ترفيه', color:'text-pink-500'},
+            other: {icon:'fa-tag', label:'أخرى', color:'text-gray-500'}
+        };
+
+        const colorConfig = {
+            blue: {bg:'bg-blue-50 dark:bg-blue-900/20', border:'border-blue-200 dark:border-blue-800', accent:'bg-blue-500', text:'text-blue-600 dark:text-blue-400', gradient:'from-blue-500 to-blue-600'},
+            green: {bg:'bg-green-50 dark:bg-green-900/20', border:'border-green-200 dark:border-green-800', accent:'bg-green-500', text:'text-green-600 dark:text-green-400', gradient:'from-green-500 to-green-600'},
+            purple: {bg:'bg-purple-50 dark:bg-purple-900/20', border:'border-purple-200 dark:border-purple-800', accent:'bg-purple-500', text:'text-purple-600 dark:text-purple-400', gradient:'from-purple-500 to-purple-600'},
+            pink: {bg:'bg-pink-50 dark:bg-pink-900/20', border:'border-pink-200 dark:border-pink-800', accent:'bg-pink-500', text:'text-pink-600 dark:text-pink-400', gradient:'from-pink-500 to-pink-600'},
+            orange: {bg:'bg-orange-50 dark:bg-orange-900/20', border:'border-orange-200 dark:border-orange-800', accent:'bg-orange-500', text:'text-orange-600 dark:text-orange-400', gradient:'from-orange-500 to-orange-600'},
+            red: {bg:'bg-red-50 dark:bg-red-900/20', border:'border-red-200 dark:border-red-800', accent:'bg-red-500', text:'text-red-600 dark:text-red-400', gradient:'from-red-500 to-red-600'},
+            cyan: {bg:'bg-cyan-50 dark:bg-cyan-900/20', border:'border-cyan-200 dark:border-cyan-800', accent:'bg-cyan-500', text:'text-cyan-600 dark:text-cyan-400', gradient:'from-cyan-500 to-cyan-600'},
+            gray: {bg:'bg-gray-50 dark:bg-gray-800/50', border:'border-gray-200 dark:border-gray-700', accent:'bg-gray-500', text:'text-gray-600 dark:text-gray-400', gradient:'from-gray-500 to-gray-600'}
+        };
+
+        document.addEventListener('DOMContentLoaded', () => {
+            // Migrate old data to add domain field
+            links.forEach(link => {
+                if (!link.domain) {
+                    link.domain = extractDomain(link.url);
+                }
+            });
+            saveLinks();
+            renderLinks(); updateCount(); checkDarkMode();
+            window.addEventListener('beforeinstallprompt', (e) => {
+                e.preventDefault(); deferredPrompt = e;
+                document.getElementById('installBtn').classList.add('show');
+            });
+        });
+
+        function checkDarkMode() { if (localStorage.getItem('darkMode') === 'true' || (!localStorage.getItem('darkMode') && window.matchMedia('(prefers-color-scheme: dark)').matches)) document.documentElement.classList.add('dark'); }
+        function toggleDarkMode() { document.documentElement.classList.toggle('dark'); localStorage.setItem('darkMode', document.documentElement.classList.contains('dark')); }
+        function selectColor(el, color) { document.querySelectorAll('#addModal .color-dot').forEach(d => d.classList.remove('active')); el.classList.add('active'); selectedColor = color; }
+        function selectEditColor(el, color) { document.querySelectorAll('#editModal [data-edit-color]').forEach(d => d.classList.remove('active')); el.classList.add('active'); editSelectedColor = color; }
+
+        // Modal functions
+        function openAddModal() {
+            document.getElementById('addModal').classList.add('show');
+            setTimeout(() => document.getElementById('linkUrl').focus(), 300);
+        }
+        function closeAddModal() {
+            document.getElementById('addModal').classList.remove('show');
+            clearForm();
+        }
+
+        function scrollToAdd() {
+            openAddModal();
+        }
+
+        function autoFillName() {
+            const url = document.getElementById('linkUrl').value.trim();
+            const nameInput = document.getElementById('linkName');
+            if (url && !nameInput.value.trim()) {
+                try {
+                    const u = new URL(url.startsWith('http') ? url : 'https://' + url);
+                    let domain = u.hostname.replace(/^www\./, '');
+                    domain = domain.charAt(0).toUpperCase() + domain.slice(1);
+                    nameInput.value = domain;
+                } catch (e) {
+                    // fallback
+                }
+            }
+        }
+
+        function addLink(e) {
+            e.preventDefault();
+            const url = document.getElementById('linkUrl').value.trim();
+            const name = document.getElementById('linkName').value.trim();
+            const notes = document.getElementById('linkNotes').value.trim();
+            const category = document.querySelector('input[name="category"]:checked').value;
+            if (!url || !name) return;
+            const finalUrl = url.startsWith('http') ? url : 'https://' + url;
+            const domain = extractDomain(finalUrl);
+            const link = { id: Date.now(), url: finalUrl, name, notes, category, color: selectedColor, domain: domain, createdAt: new Date().toISOString() };
+            links.unshift(link); saveLinks(); renderLinks(); closeAddModal(); showToast('تم إضافة الرابط بنجاح', 'success');
+        }
+
+        function extractDomain(url) {
+            try {
+                const u = new URL(url);
+                return u.hostname.replace(/^www\./, '');
+            } catch {
+                return url.replace(/^https?:\/\//, '').split('/')[0].replace(/^www\./, '');
+            }
+        }
+
+        // Get favicon URL - uses Google's favicon service which is very reliable
+        function getFaviconUrl(domain) {
+            if (!domain) return '';
+            return 'https://www.google.com/s2/favicons?domain=' + encodeURIComponent(domain) + '&sz=128';
+        }
+
+        function clearForm() { document.getElementById('addLinkForm').reset(); selectColor(document.querySelector('#addModal [data-color="blue"]'), 'blue'); }
+
+        function renderLinks() {
+            const container = document.getElementById('linksContainer');
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            let filtered = links.filter(link => {
+                const matchesSearch = link.name.toLowerCase().includes(searchTerm) || link.notes.toLowerCase().includes(searchTerm) || link.url.toLowerCase().includes(searchTerm);
+                const matchesCategory = currentFilter === 'all' || link.category === currentFilter;
+                return matchesSearch && matchesCategory;
+            });
+            if (filtered.length === 0) { container.innerHTML = ''; document.getElementById('emptyState').classList.remove('hidden'); return; }
+            document.getElementById('emptyState').classList.add('hidden');
+            container.innerHTML = filtered.map((link, index) => {
+                const cat = categoryConfig[link.category] || categoryConfig.other;
+                const col = colorConfig[link.color] || colorConfig.blue;
+                const date = new Date(link.createdAt).toLocaleDateString('ar-SA');
+                const safeUrl = escapeHtml(link.url);
+                const safeName = escapeHtml(link.name);
+                const domain = link.domain || extractDomain(link.url);
+                const faviconUrl = getFaviconUrl(domain);
+                const firstLetter = (safeName.charAt(0) || '?').toUpperCase();
+                const imgId = 'fav-' + link.id;
+                const imgId2 = 'fav2-' + link.id;
+                const imgId3 = 'fav3-' + link.id;
+
+                return `<div class="group relative bg-white dark:bg-gray-800 rounded-xl border ${col.border} overflow-hidden card-hover slide-in link-card">
+                    <div class="absolute top-0 right-0 w-full h-0.5 bg-gradient-to-l ${col.gradient}"></div>
+                    <div class="p-3">
+                        <div class="flex items-center justify-between mb-2">
+                            <div class="flex items-center gap-1.5 min-w-0">
+                                <img id="${imgId}" src="${faviconUrl}" alt="" class="favicon-img shrink-0" loading="lazy" 
+                                    onerror="document.getElementById('${imgId}').style.display='none'; document.getElementById('fb-${link.id}').style.display='flex';">
+                                <div id="fb-${link.id}" class="favicon-fallback" style="display:none;">${firstLetter}</div>
+                                <span class="w-6 h-6 rounded-md ${col.bg} flex items-center justify-center shrink-0"><i class="fas ${cat.icon} ${col.text} text-[10px]"></i></span>
+                                <span class="text-[10px] font-medium text-gray-400 shrink-0">${cat.label}</span>
+                            </div>
+                            <div class="flex gap-1.5 shrink-0">
+                                <button onclick="copyLink('${safeUrl}')" class="action-btn" title="نسخ الرابط">
+                                    <i class="fas fa-copy"></i>
+                                </button>
+                                <button onclick="openInChrome('${safeUrl}')" class="action-btn" title="فتح في Chrome">
+                                    <i class="fab fa-chrome"></i>
+                                </button>
+                                <button onclick="shareLink('${safeUrl}', '${safeName}')" class="action-btn" title="مشاركة">
+                                    <i class="fas fa-share-alt"></i>
+                                </button>
+                                <button onclick="editLink(${link.id})" class="action-btn" title="تعديل">
+                                    <i class="fas fa-pen"></i>
+                                </button>
+                                <button onclick="deleteLink(${link.id})" class="action-btn delete-btn" title="حذف">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2 mb-0.5">
+                            <img id="${imgId2}" src="${faviconUrl}" alt="" class="favicon-img-small shrink-0" loading="lazy" 
+                                onerror="document.getElementById('${imgId2}').style.display='none';">
+                            <h3 class="font-bold text-sm text-gray-800 dark:text-gray-100 truncate leading-tight">${safeName}</h3>
+                        </div>
+                        ${link.notes ? `<p class="text-[11px] text-gray-500 dark:text-gray-400 mb-2 line-clamp-1 leading-tight pr-6">${escapeHtml(link.notes)}</p>` : '<div class="mb-1"></div>'}
+                        <a href="${safeUrl}" target="_blank" rel="noopener noreferrer" class="flex items-center gap-1.5 w-full py-2 px-3 rounded-lg ${col.bg} ${col.text} hover:opacity-80 transition-all text-xs font-medium group/link">
+                            <i class="fas fa-external-link-alt text-[10px] transition-transform group-hover/link:-translate-x-1"></i>
+                            <img id="${imgId3}" src="${faviconUrl}" alt="" class="favicon-img-small shrink-0" loading="lazy" 
+                                onerror="document.getElementById('${imgId3}').style.display='none';">
+                            <span class="truncate flex-1 text-right">${safeName}</span>
+                        </a>
+                        <div class="mt-2 flex items-center justify-between text-[10px] text-gray-400"><span>${date}</span><span class="w-1.5 h-1.5 rounded-full ${col.accent}"></span></div>
+                    </div>
+                </div>`;
+            }).join('');
+            updateCount();
+        }
+
+        function escapeHtml(text) { const div = document.createElement('div'); div.textContent = text; return div.innerHTML; }
+        function filterLinks() { renderLinks(); }
+        function filterByCategory(cat) {
+            currentFilter = cat;
+            document.querySelectorAll('.category-btn').forEach(btn => {
+                if (btn.dataset.cat === cat) { btn.classList.add('bg-blue-600','text-white'); btn.classList.remove('bg-white','dark:bg-gray-800','text-gray-800','dark:text-gray-100'); }
+                else { btn.classList.remove('bg-blue-600','text-white'); btn.classList.add('bg-white','dark:bg-gray-800'); }
+            });
+            renderLinks();
+        }
+
+        function copyLink(url) {
+            navigator.clipboard.writeText(url).then(() => showToast('تم نسخ الرابط', 'success')).catch(() => {
+                const ta = document.createElement('textarea'); ta.value = url; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); showToast('تم نسخ الرابط', 'success');
+            });
+        }
+
+        function openInChrome(url) {
+            const intentUrl = 'intent://' + url.replace(/^https?:\/\//, '') + '#Intent;scheme=https;package=com.android.chrome;end';
+            window.location.href = intentUrl;
+            setTimeout(() => { window.open(url, '_blank'); }, 300);
+        }
+
+        async function shareLink(url, title) {
+            if (navigator.share) {
+                try { await navigator.share({ title: title || 'رابط', text: title || '', url: url }); } catch (err) { if (err.name !== 'AbortError') copyLink(url); }
+            } else {
+                copyLink(url);
+            }
+        }
+
+        function editLink(id) {
+            const link = links.find(l => l.id === id); if (!link) return;
+            document.getElementById('editId').value = id;
+            document.getElementById('editUrl').value = link.url;
+            document.getElementById('editName').value = link.name;
+            document.getElementById('editNotes').value = link.notes;
+            document.querySelectorAll('#editModal [data-edit-color]').forEach(d => d.classList.toggle('active', d.dataset.editColor === link.color));
+            editSelectedColor = link.color;
+            document.getElementById('editModal').classList.add('show');
+        }
+
+        function saveEdit(e) {
+            e.preventDefault();
+            const id = parseInt(document.getElementById('editId').value);
+            const link = links.find(l => l.id === id); if (!link) return;
+            link.url = document.getElementById('editUrl').value.trim();
+            link.name = document.getElementById('editName').value.trim();
+            link.notes = document.getElementById('editNotes').value.trim();
+            link.color = editSelectedColor;
+            link.domain = extractDomain(link.url);
+            saveLinks(); renderLinks(); closeEditModal(); showToast('تم تحديث الرابط بنجاح', 'success');
+        }
+
+        function closeEditModal() { document.getElementById('editModal').classList.remove('show'); }
+        function deleteLink(id) { if (!confirm('هل أنت متأكد من حذف هذا الرابط؟')) return; links = links.filter(l => l.id !== id); saveLinks(); renderLinks(); showToast('تم حذف الرابط', 'success'); }
+        function saveLinks() { localStorage.setItem('myLinks', JSON.stringify(links)); updateCount(); }
+        function updateCount() { const count = links.length; document.getElementById('linksCount').textContent = count + ' ' + (count === 1 ? 'رابط' : count === 2 ? 'رابطان' : count < 11 ? 'روابط' : 'رابط'); }
+
+        function exportData() {
+            const dataStr = JSON.stringify(links, null, 2);
+            const blob = new Blob([dataStr], {type:'application/json'});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a'); a.href = url; a.download = `روابطي_${new Date().toLocaleDateString('ar-SA')}.json`; a.click(); URL.revokeObjectURL(url);
+            showToast('تم تصدير البيانات بنجاح', 'success');
+        }
+        function importData(input) {
+            const file = input.files[0]; if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (e) => { try { const imported = JSON.parse(e.target.result); if (Array.isArray(imported)) { 
+                imported.forEach(l => { if (!l.domain) l.domain = extractDomain(l.url); });
+                links = imported; saveLinks(); renderLinks(); showToast('تم استيراد البيانات بنجاح', 'success'); 
+            } else throw new Error('Invalid'); } catch { showToast('ملف غير صالح', 'error'); } };
+            reader.readAsText(file); input.value = '';
+        }
+
+        function showToast(message, type='success') {
+            const toast = document.getElementById('toast');
+            document.getElementById('toastMessage').textContent = message;
+            document.getElementById('toastIcon').className = type === 'success' ? 'fas fa-check-circle text-green-400 dark:text-green-600' : 'fas fa-exclamation-circle text-red-400 dark:text-red-600';
+            toast.classList.remove('translate-y-20','opacity-0');
+            setTimeout(() => toast.classList.add('translate-y-20','opacity-0'), 3000);
+        }
+
+        async function installPWA() {
+            if (!deferredPrompt) { showToast('اضغط زر (⋮) ثم "إضافة للشاشة الرئيسية"', 'error'); return; }
+            deferredPrompt.prompt();
+            const {outcome} = await deferredPrompt.userChoice;
+            if (outcome === 'accepted') { document.getElementById('installBtn').classList.remove('show'); showToast('تم تثبيت التطبيق!', 'success'); }
+            deferredPrompt = null;
+        }
+
+        function scrollToTop() { window.scrollTo({top:0, behavior:'smooth'}); }
+        document.addEventListener('keydown', (e) => { if (e.ctrlKey && e.key === 'f') { e.preventDefault(); document.getElementById('searchInput').focus(); } });
+    </script>
+</body>
+</html>
