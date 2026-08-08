@@ -461,10 +461,11 @@
             }
         }
 
-        // Get favicon URL - uses Google's favicon service which is very reliable
+        // Get favicon URL - uses multiple services for reliability
         function getFaviconUrl(domain) {
             if (!domain) return '';
-            return 'https://www.google.com/s2/favicons?domain=' + encodeURIComponent(domain) + '&sz=128';
+            // DuckDuckGo favicon service - very reliable
+            return 'https://icons.duckduckgo.com/ip3/' + encodeURIComponent(domain) + '.ico';
         }
 
         function clearForm() { document.getElementById('addLinkForm').reset(); selectColor(document.querySelector('#addModal [data-color="blue"]'), 'blue'); }
@@ -491,6 +492,7 @@
                 const imgId = 'fav-' + link.id;
                 const imgId2 = 'fav2-' + link.id;
                 const imgId3 = 'fav3-' + link.id;
+                const fbId = 'fb-' + link.id;
 
                 return `<div class="group relative bg-white dark:bg-gray-800 rounded-xl border ${col.border} overflow-hidden card-hover slide-in link-card">
                     <div class="absolute top-0 right-0 w-full h-0.5 bg-gradient-to-l ${col.gradient}"></div>
@@ -498,8 +500,9 @@
                         <div class="flex items-center justify-between mb-2">
                             <div class="flex items-center gap-1.5 min-w-0">
                                 <img id="${imgId}" src="${faviconUrl}" alt="" class="favicon-img shrink-0" loading="lazy" 
-                                    onerror="document.getElementById('${imgId}').style.display='none'; document.getElementById('fb-${link.id}').style.display='flex';">
-                                <div id="fb-${link.id}" class="favicon-fallback" style="display:none;">${firstLetter}</div>
+                                    onerror="this.style.display='none'; document.getElementById('${fbId}').style.display='flex';"
+                                    onload="this.style.display='block'; document.getElementById('${fbId}').style.display='none';">
+                                <div id="${fbId}" class="favicon-fallback" style="display:none;">${firstLetter}</div>
                                 <span class="w-6 h-6 rounded-md ${col.bg} flex items-center justify-center shrink-0"><i class="fas ${cat.icon} ${col.text} text-[10px]"></i></span>
                                 <span class="text-[10px] font-medium text-gray-400 shrink-0">${cat.label}</span>
                             </div>
@@ -523,14 +526,14 @@
                         </div>
                         <div class="flex items-center gap-2 mb-0.5">
                             <img id="${imgId2}" src="${faviconUrl}" alt="" class="favicon-img-small shrink-0" loading="lazy" 
-                                onerror="document.getElementById('${imgId2}').style.display='none';">
+                                onerror="this.style.display='none';">
                             <h3 class="font-bold text-sm text-gray-800 dark:text-gray-100 truncate leading-tight">${safeName}</h3>
                         </div>
                         ${link.notes ? `<p class="text-[11px] text-gray-500 dark:text-gray-400 mb-2 line-clamp-1 leading-tight pr-6">${escapeHtml(link.notes)}</p>` : '<div class="mb-1"></div>'}
                         <a href="${safeUrl}" target="_blank" rel="noopener noreferrer" class="flex items-center gap-1.5 w-full py-2 px-3 rounded-lg ${col.bg} ${col.text} hover:opacity-80 transition-all text-xs font-medium group/link">
                             <i class="fas fa-external-link-alt text-[10px] transition-transform group-hover/link:-translate-x-1"></i>
                             <img id="${imgId3}" src="${faviconUrl}" alt="" class="favicon-img-small shrink-0" loading="lazy" 
-                                onerror="document.getElementById('${imgId3}').style.display='none';">
+                                onerror="this.style.display='none';">
                             <span class="truncate flex-1 text-right">${safeName}</span>
                         </a>
                         <div class="mt-2 flex items-center justify-between text-[10px] text-gray-400"><span>${date}</span><span class="w-1.5 h-1.5 rounded-full ${col.accent}"></span></div>
