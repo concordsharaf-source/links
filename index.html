@@ -47,22 +47,12 @@
         .color-dot.active { border-color:#fff; box-shadow:0 0 0 2px #3b82f6; }
         .scrollbar-hide::-webkit-scrollbar { display:none; }
         .scrollbar-hide { -ms-overflow-style:none; scrollbar-width:none; }
-        .action-btn { 
-            width: 36px; height: 36px; border-radius: 10px; 
-            display: flex; align-items: center; justify-content: center;
-            transition: all 0.15s; font-size: 13px;
-        }
-        .action-btn:active { transform: scale(0.9); }
         .link-title {
             cursor: pointer;
             transition: color 0.2s;
         }
-        .link-title:hover {
-            color: #3b82f6;
-        }
-        .dark .link-title:hover {
-            color: #60a5fa;
-        }
+        .link-title:hover { color: #3b82f6; }
+        .dark .link-title:hover { color: #60a5fa; }
         .dropdown-enter {
             animation: dropdownEnter 0.2s cubic-bezier(0.16, 1, 0.3, 1);
         }
@@ -70,6 +60,35 @@
             from { opacity: 0; transform: translateY(-8px); }
             to { opacity: 1; transform: translateY(0); }
         }
+        .stats-expand {
+            animation: statsExpand 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        @keyframes statsExpand {
+            from { opacity: 0; max-height: 0; }
+            to { opacity: 1; max-height: 200px; }
+        }
+        .link-title:active {
+            transform: scale(0.97);
+        }
+        
+        /* ألوان الخلفية الشفافة - أوضح */
+        .bg-blue-bg { background-color: rgba(59, 130, 246, 0.12); }
+        .bg-green-bg { background-color: rgba(34, 197, 94, 0.12); }
+        .bg-purple-bg { background-color: rgba(168, 85, 247, 0.12); }
+        .bg-pink-bg { background-color: rgba(236, 72, 153, 0.12); }
+        .bg-orange-bg { background-color: rgba(249, 115, 22, 0.12); }
+        .bg-red-bg { background-color: rgba(239, 68, 68, 0.12); }
+        .bg-cyan-bg { background-color: rgba(6, 182, 212, 0.12); }
+        .bg-gray-bg { background-color: rgba(107, 114, 128, 0.12); }
+        
+        .dark .bg-blue-bg { background-color: rgba(59, 130, 246, 0.18); }
+        .dark .bg-green-bg { background-color: rgba(34, 197, 94, 0.18); }
+        .dark .bg-purple-bg { background-color: rgba(168, 85, 247, 0.18); }
+        .dark .bg-pink-bg { background-color: rgba(236, 72, 153, 0.18); }
+        .dark .bg-orange-bg { background-color: rgba(249, 115, 22, 0.18); }
+        .dark .bg-red-bg { background-color: rgba(239, 68, 68, 0.18); }
+        .dark .bg-cyan-bg { background-color: rgba(6, 182, 212, 0.18); }
+        .dark .bg-gray-bg { background-color: rgba(107, 114, 128, 0.18); }
     </style>
 </head>
 <body class="bg-gray-100 dark:bg-gray-950 text-gray-800 dark:text-gray-100 min-h-screen safe-bottom transition-colors duration-300">
@@ -287,6 +306,17 @@
             cyan: 'from-cyan-500 to-cyan-600',
             gray: 'from-gray-500 to-gray-600'
         };
+        
+        const bgColorMap = {
+            blue: 'bg-blue-bg',
+            green: 'bg-green-bg',
+            purple: 'bg-purple-bg',
+            pink: 'bg-pink-bg',
+            orange: 'bg-orange-bg',
+            red: 'bg-red-bg',
+            cyan: 'bg-cyan-bg',
+            gray: 'bg-gray-bg'
+        };
 
         document.addEventListener('DOMContentLoaded', () => {
             renderLinks(); checkDarkMode();
@@ -301,7 +331,7 @@
                     openDropdownId = null;
                     renderLinks();
                 }
-                if (!e.target.closest('.stats-toggle') && !e.target.closest('.stats-menu')) {
+                if (!e.target.closest('.stats-toggle') && !e.target.closest('.stats-content')) {
                     openStatsId = null;
                     renderLinks();
                 }
@@ -362,7 +392,6 @@
                 openDropdownId = null;
             } else {
                 openDropdownId = id;
-                openStatsId = null;
             }
             renderLinks();
         }
@@ -372,9 +401,45 @@
                 openStatsId = null;
             } else {
                 openStatsId = id;
-                openDropdownId = null;
             }
             renderLinks();
+        }
+
+        // دالة النسخ الآمنة التي تعمل على جميع المتصفحات
+        function copyToClipboard(text) {
+            // الطريقة الأولى: استخدام Clipboard API
+            if (navigator.clipboard && window.isSecureContext) {
+                return navigator.clipboard.writeText(text).then(() => true).catch(() => false);
+            }
+            
+            // الطريقة الثانية: استخدام textarea احتياطي
+            return new Promise((resolve) => {
+                try {
+                    const textArea = document.createElement('textarea');
+                    textArea.value = text;
+                    textArea.style.position = 'fixed';
+                    textArea.style.left = '-9999px';
+                    textArea.style.top = '-9999px';
+                    textArea.style.opacity = '0';
+                    document.body.appendChild(textArea);
+                    textArea.focus();
+                    textArea.select();
+                    const successful = document.execCommand('copy');
+                    document.body.removeChild(textArea);
+                    resolve(successful);
+                } catch (err) {
+                    resolve(false);
+                }
+            });
+        }
+
+        async function copyLinkDirect(url) {
+            const success = await copyToClipboard(url);
+            if (success) {
+                showToast('تم نسخ الرابط ✓', 'copy');
+            } else {
+                showToast('فشل نسخ الرابط ✗', 'error');
+            }
         }
 
         function trackOpen(id, targetUrl, isChromeIntent = false) {
@@ -469,6 +534,7 @@
                 const faviconUrl = `https://www.google.com/s2/favicons?domain=${domain}&sz=64`;
                 const cat = categoryConfig[link.category] || categoryConfig.other;
                 const gradient = colorMap[link.color] || colorMap.blue;
+                const bgColor = bgColorMap[link.color] || bgColorMap.blue;
                 const safeUrl = escapeHtml(link.url);
                 const safeName = escapeHtml(link.name);
                 const clicksCount = link.clicks || 0;
@@ -476,40 +542,71 @@
                 const isDropdownOpen = openDropdownId === link.id;
                 const isStatsOpen = openStatsId === link.id;
 
-                return `<div class="relative bg-white dark:bg-gray-900 rounded-2xl p-4 shadow-sm border ${link.pinned ? 'border-amber-400 dark:border-amber-500/50 shadow-amber-500/5' : 'border-gray-100 dark:border-gray-800/80'} overflow-visible transition-all">
+                return `<div class="relative ${bgColor} rounded-2xl p-4 shadow-sm border ${link.pinned ? 'border-amber-400 dark:border-amber-500/50 shadow-amber-500/5' : 'border-gray-200 dark:border-gray-800/80'} overflow-visible transition-all">
                     <div class="absolute top-0 right-0 left-0 h-1 bg-gradient-to-r ${gradient}"></div>
 
                     <!-- الصف العلوي: أيقونة + اسم الرابط + زر القائمة المنسدلة -->
                     <div class="flex items-center gap-3">
-                        <img src="${faviconUrl}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" class="w-12 h-12 rounded-xl object-cover bg-gray-50 dark:bg-gray-800 p-1 shrink-0 border border-gray-100 dark:border-gray-800">
+                        <img src="${faviconUrl}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" class="w-12 h-12 rounded-xl object-cover bg-white dark:bg-gray-800 p-1 shrink-0 border border-gray-100 dark:border-gray-700">
                         <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-sm shrink-0 hidden">${safeName.charAt(0).toUpperCase()}</div>
 
                         <div class="flex-1 min-w-0">
                             <div class="flex items-center gap-2">
                                 ${link.pinned ? '<i class="fas fa-thumbtack text-amber-500 text-[11px] shrink-0"></i>' : ''}
-                                <h3 class="link-title font-bold text-lg text-gray-900 dark:text-gray-100 leading-snug truncate" onclick="trackOpen(${link.id}, '${safeUrl}'); haptic();">${safeName}</h3>
-                                <div class="relative">
-                                    <button onclick="event.stopPropagation(); toggleDropdown(${link.id}); haptic();" class="dropdown-toggle w-8 h-8 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-700 transition-all shrink-0">
+                                <h3 class="link-title font-bold text-lg text-gray-900 dark:text-gray-100 leading-snug truncate select-none" 
+                                    data-link-id="${link.id}" 
+                                    data-link-url="${safeUrl}"
+                                    title="اضغط للفتح - اضغط مطولاً للنسخ">${safeName}</h3>
+                                <div class="relative mr-auto">
+                                    <button onclick="event.stopPropagation(); toggleDropdown(${link.id}); haptic();" class="dropdown-toggle w-8 h-8 rounded-lg bg-white/60 dark:bg-gray-800/60 flex items-center justify-center text-gray-500 hover:bg-white dark:hover:bg-gray-700 transition-all shrink-0">
                                         <i class="fas fa-chevron-down text-xs transition-transform ${isDropdownOpen ? 'rotate-180' : ''}"></i>
                                     </button>
                                     ${isDropdownOpen ? `
-                                    <div class="dropdown-menu absolute left-0 top-full mt-1 w-48 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 py-1 z-50 dropdown-enter">
-                                        <button onclick="event.stopPropagation(); copyLink('${safeUrl}'); haptic();" class="w-full px-4 py-2.5 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2 transition-all">
+                                    <div class="dropdown-menu absolute left-0 top-full mt-1 w-56 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 py-1 z-50 dropdown-enter">
+                                        <button onclick="event.stopPropagation(); copyLinkDirect('${safeUrl}'); haptic();" class="w-full px-4 py-2.5 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-3 transition-all">
                                             <i class="fas fa-copy text-blue-500 w-4 text-center"></i> نسخ الرابط
                                         </button>
-                                        <button onclick="event.stopPropagation(); trackOpen(${link.id}, '${safeUrl}', true); haptic();" class="w-full px-4 py-2.5 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2 transition-all">
+                                        <button onclick="event.stopPropagation(); trackOpen(${link.id}, '${safeUrl}', true); haptic();" class="w-full px-4 py-2.5 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-3 transition-all">
                                             <i class="fab fa-chrome text-green-500 w-4 text-center"></i> فتح في Chrome
                                         </button>
-                                        <button onclick="event.stopPropagation(); shareLink('${safeUrl}', '${safeName}'); haptic();" class="w-full px-4 py-2.5 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2 transition-all">
+                                        <button onclick="event.stopPropagation(); shareLink('${safeUrl}', '${safeName}'); haptic();" class="w-full px-4 py-2.5 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-3 transition-all">
                                             <i class="fas fa-share-alt text-purple-500 w-4 text-center"></i> مشاركة
                                         </button>
-                                        <button onclick="event.stopPropagation(); editLink(${link.id}); haptic();" class="w-full px-4 py-2.5 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2 transition-all">
+                                        <button onclick="event.stopPropagation(); editLink(${link.id}); haptic();" class="w-full px-4 py-2.5 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-3 transition-all">
                                             <i class="fas fa-pen text-blue-500 w-4 text-center"></i> تعديل
                                         </button>
-                                        <button onclick="event.stopPropagation(); togglePin(${link.id}); haptic();" class="w-full px-4 py-2.5 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2 transition-all">
+                                        <button onclick="event.stopPropagation(); togglePin(${link.id}); haptic();" class="w-full px-4 py-2.5 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-3 transition-all">
                                             <i class="fas fa-thumbtack text-amber-500 w-4 text-center"></i> ${link.pinned ? 'إلغاء التثبيت' : 'تثبيت'}
                                         </button>
-                                        <button onclick="event.stopPropagation(); deleteLink(${link.id}); haptic();" class="w-full px-4 py-2.5 text-xs text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 flex items-center gap-2 transition-all">
+                                        
+                                        <div class="border-t border-gray-100 dark:border-gray-700">
+                                            <button onclick="event.stopPropagation(); toggleStats(${link.id}); haptic();" class="stats-toggle w-full px-4 py-2.5 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-3 transition-all">
+                                                <i class="fas fa-info-circle text-cyan-500 w-4 text-center"></i> معلومات الرابط
+                                                <i class="fas fa-chevron-${isStatsOpen ? 'up' : 'down'} text-[10px] mr-auto text-gray-400"></i>
+                                            </button>
+                                            ${isStatsOpen ? `
+                                            <div class="stats-content px-4 py-2 border-t border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50 rounded-b-xl stats-expand">
+                                                <div class="flex items-center gap-2 text-[11px] text-gray-500 dark:text-gray-400 mb-1.5">
+                                                    <i class="fas fa-tag text-blue-400 w-4 text-center"></i>
+                                                    <span>النوع: <strong class="text-gray-700 dark:text-gray-300">${cat.label}</strong></span>
+                                                </div>
+                                                <div class="flex items-center gap-2 text-[11px] text-gray-500 dark:text-gray-400 mb-1.5">
+                                                    <i class="fas fa-eye text-blue-400 w-4 text-center"></i>
+                                                    <span>عدد الزيارات: <strong class="text-gray-700 dark:text-gray-300">${clicksCount}</strong></span>
+                                                </div>
+                                                <div class="flex items-center gap-2 text-[11px] text-gray-500 dark:text-gray-400 mb-1.5">
+                                                    <i class="fas fa-clock text-amber-400 w-4 text-center"></i>
+                                                    <span>آخر زيارة: <strong class="text-gray-700 dark:text-gray-300">${lastTimeText}</strong></span>
+                                                </div>
+                                                <div class="flex items-center gap-2 text-[11px] text-gray-500 dark:text-gray-400">
+                                                    <i class="fas fa-globe text-gray-400 w-4 text-center"></i>
+                                                    <span class="truncate text-gray-700 dark:text-gray-300">${domain}</span>
+                                                </div>
+                                            </div>
+                                            ` : ''}
+                                        </div>
+                                        
+                                        <button onclick="event.stopPropagation(); deleteLink(${link.id}); haptic();" class="w-full px-4 py-2.5 text-xs text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 flex items-center gap-3 transition-all border-t border-gray-100 dark:border-gray-700">
                                             <i class="fas fa-trash-alt w-4 text-center"></i> حذف
                                         </button>
                                     </div>
@@ -519,38 +616,68 @@
                             ${link.notes ? `<p class="text-[11px] text-gray-400 mt-0.5 truncate">${escapeHtml(link.notes)}</p>` : ''}
                         </div>
                     </div>
-
-                    <!-- شريط المعلومات السفلي -->
-                    <div class="flex items-center gap-2 mt-2 pt-2 border-t border-gray-100 dark:border-gray-800/60">
-                        <div class="relative">
-                            <button onclick="event.stopPropagation(); toggleStats(${link.id}); haptic();" class="stats-toggle w-8 h-8 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-700 transition-all shrink-0">
-                                <i class="fas fa-exclamation text-xs"></i>
-                            </button>
-                            ${isStatsOpen ? `
-                            <div class="stats-menu absolute right-0 bottom-full mb-1 w-52 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 py-2 z-50 dropdown-enter">
-                                <div class="px-4 py-1.5 flex items-center gap-2 text-[11px] text-gray-600 dark:text-gray-300">
-                                    <i class="fas fa-tag text-blue-400 w-4 text-center"></i>
-                                    <span>النوع: <strong>${cat.label}</strong></span>
-                                </div>
-                                <div class="px-4 py-1.5 flex items-center gap-2 text-[11px] text-gray-600 dark:text-gray-300">
-                                    <i class="fas fa-eye text-blue-400 w-4 text-center"></i>
-                                    <span>عدد الزيارات: <strong>${clicksCount}</strong></span>
-                                </div>
-                                <div class="px-4 py-1.5 flex items-center gap-2 text-[11px] text-gray-600 dark:text-gray-300">
-                                    <i class="fas fa-clock text-amber-400 w-4 text-center"></i>
-                                    <span>آخر زيارة: <strong>${lastTimeText}</strong></span>
-                                </div>
-                                <div class="px-4 py-1.5 flex items-center gap-2 text-[11px] text-gray-600 dark:text-gray-300">
-                                    <i class="fas fa-globe text-gray-400 w-4 text-center"></i>
-                                    <span class="truncate">${domain}</span>
-                                </div>
-                            </div>
-                            ` : ''}
-                        </div>
-                    </div>
                 </div>`;
             }).join('');
+            
             updateCount();
+            attachLinkEvents();
+        }
+        
+        function attachLinkEvents() {
+            const linkTitles = document.querySelectorAll('.link-title');
+            
+            linkTitles.forEach(title => {
+                const linkId = parseInt(title.dataset.linkId);
+                const linkUrl = title.dataset.linkUrl;
+                let longPressTimer = null;
+                let isLongPress = false;
+                
+                // تنظيف الأحداث القديمة
+                const newTitle = title.cloneNode(true);
+                title.parentNode.replaceChild(newTitle, title);
+                
+                // النقر العادي لفتح الرابط
+                newTitle.addEventListener('click', function(e) {
+                    if (isLongPress) {
+                        isLongPress = false;
+                        e.preventDefault();
+                        e.stopPropagation();
+                        return;
+                    }
+                    trackOpen(linkId, linkUrl);
+                });
+                
+                // بدء الضغط المطول
+                newTitle.addEventListener('mousedown', function(e) {
+                    isLongPress = false;
+                    longPressTimer = setTimeout(() => {
+                        isLongPress = true;
+                        copyLinkDirect(linkUrl);
+                        haptic();
+                        if (navigator.vibrate) navigator.vibrate([30, 50, 30]);
+                    }, 600);
+                });
+                
+                newTitle.addEventListener('touchstart', function(e) {
+                    isLongPress = false;
+                    longPressTimer = setTimeout(() => {
+                        isLongPress = true;
+                        copyLinkDirect(linkUrl);
+                        haptic();
+                        if (navigator.vibrate) navigator.vibrate([30, 50, 30]);
+                    }, 600);
+                });
+                
+                // إلغاء الضغط المطول
+                const cancelLongPress = () => {
+                    clearTimeout(longPressTimer);
+                };
+                
+                newTitle.addEventListener('mouseup', cancelLongPress);
+                newTitle.addEventListener('mouseleave', cancelLongPress);
+                newTitle.addEventListener('touchend', cancelLongPress);
+                newTitle.addEventListener('touchmove', cancelLongPress);
+            });
         }
 
         function getDomain(url) {
@@ -573,14 +700,10 @@
             renderLinks();
         }
 
-        function copyLink(url) {
-            navigator.clipboard.writeText(url).then(() => showToast('تم نسخ الرابط'));
-        }
-
         async function shareLink(url, title) {
             if (navigator.share) {
                 try { await navigator.share({ title, url }); } catch (_) {}
-            } else copyLink(url);
+            } else copyLinkDirect(url);
         }
 
         function saveLinks() { localStorage.setItem('myLinks', JSON.stringify(links)); updateCount(); }
@@ -611,524 +734,16 @@
         function showToast(message, type='success') {
             const toast = document.getElementById('toast');
             document.getElementById('toastMessage').textContent = message;
-            document.getElementById('toastIcon').className = type === 'success' ? 'fas fa-check-circle text-green-400' : 'fas fa-exclamation-circle text-red-400';
-            toast.classList.remove('translate-y-20','opacity-0');
-            setTimeout(() => toast.classList.add('translate-y-20','opacity-0'), 2500);
-        }
-
-        async function installPWA() {
-            if (!deferredPrompt) return;
-            deferredPrompt.prompt();
-            const {outcome} = await deferredPrompt.userChoice;
-            if (outcome === 'accepted') document.getElementById('installBtn').classList.add('hidden');
-            deferredPrompt = null;
-        }
-    </script>
-</body>
-</html>            -webkit-user-select: none;
-            overscroll-behavior-y: none;
-        }
-        .safe-top { padding-top: max(12px, env(safe-area-inset-top)); }
-        .safe-bottom { padding-bottom: max(16px, env(safe-area-inset-bottom)); }
-        .glass { background: rgba(255,255,255,0.85); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
-        .dark .glass { background: rgba(15, 23, 42, 0.85); }
-        .slide-up { animation: slideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1); }
-        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
-        .color-dot { width:26px; height:26px; border-radius:50%; cursor:pointer; border:2px solid transparent; transition:all 0.2s; }
-        .color-dot.active { border-color:#fff; box-shadow:0 0 0 2px #3b82f6; }
-        .scrollbar-hide::-webkit-scrollbar { display:none; }
-        .scrollbar-hide { -ms-overflow-style:none; scrollbar-width:none; }
-        .action-btn { 
-            width: 32px; height: 32px; border-radius: 10px; 
-            display: flex; align-items: center; justify-content: center;
-            transition: all 0.15s; font-size: 12px;
-        }
-        .action-btn:active { transform: scale(0.9); }
-        .link-title {
-            cursor: pointer;
-            transition: color 0.2s;
-        }
-        .link-title:hover {
-            color: #3b82f6;
-        }
-        .dark .link-title:hover {
-            color: #60a5fa;
-        }
-    </style>
-</head>
-<body class="bg-gray-100 dark:bg-gray-950 text-gray-800 dark:text-gray-100 min-h-screen safe-bottom transition-colors duration-300">
-
-    <!-- Top Header -->
-    <header class="sticky top-0 z-40 glass border-b border-gray-200/50 dark:border-gray-800/50 safe-top">
-        <div class="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
-            <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-blue-600 to-purple-600 flex items-center justify-center shadow-md shadow-blue-500/20">
-                    <i class="fas fa-link text-white text-base"></i>
-                </div>
-                <div>
-                    <h1 class="text-base font-bold tracking-tight">روابطي</h1>
-                    <p class="text-[11px] text-gray-500 dark:text-gray-400 font-medium" id="linksCount">0 رابط</p>
-                </div>
-            </div>
-            <div class="flex items-center gap-2">
-                <button onclick="openAddSheet(); haptic();" class="w-9 h-9 rounded-full bg-blue-600 text-white flex items-center justify-center active:scale-95 transition-all shadow-md shadow-blue-500/30" title="إضافة رابط">
-                    <i class="fas fa-plus text-xs"></i>
-                </button>
-                <button onclick="toggleBackupModal(); haptic();" class="w-9 h-9 rounded-full bg-gray-200/60 dark:bg-gray-800/60 flex items-center justify-center active:scale-95 transition-all text-gray-600 dark:text-gray-300" title="النسخ الاحتياطي">
-                    <i class="fas fa-database text-xs"></i>
-                </button>
-                <button onclick="toggleDarkMode(); haptic();" class="w-9 h-9 rounded-full bg-gray-200/60 dark:bg-gray-800/60 flex items-center justify-center active:scale-95 transition-all">
-                    <i class="fas fa-moon dark:hidden text-gray-600 text-xs"></i>
-                    <i class="fas fa-sun hidden dark:block text-yellow-400 text-xs"></i>
-                </button>
-                <button id="installBtn" onclick="installPWA(); haptic();" class="hidden px-3 py-1.5 rounded-full bg-blue-600 text-white text-xs font-bold active:scale-95 transition-all">
-                    تثبيت
-                </button>
-            </div>
-        </div>
-    </header>
-
-    <main class="max-w-4xl mx-auto px-4 py-3">
-
-        <!-- Search & Filter Bar -->
-        <div class="sticky top-[65px] z-30 py-2 bg-gray-100/90 dark:bg-gray-950/90 backdrop-blur-md mb-2">
-            <div class="relative mb-2.5">
-                <i class="fas fa-search absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs"></i>
-                <input type="text" id="searchInput" placeholder="ابحث في أسمائك أو ملاحظاتك أو الروابط..." 
-                    class="w-full pr-10 pl-4 py-2.5 rounded-2xl bg-white dark:bg-gray-900 border-none shadow-sm focus:ring-2 focus:ring-blue-500/50 outline-none text-xs font-medium"
-                    oninput="filterLinks()">
-            </div>
-            <div class="flex gap-1.5 overflow-x-auto scrollbar-hide py-1" id="categoryFilters">
-                <button onclick="filterByCategory('all'); haptic();" class="category-btn active px-3.5 py-1.5 rounded-xl bg-blue-600 text-white text-xs font-semibold whitespace-nowrap transition-all" data-cat="all">الكل</button>
-                <button onclick="filterByCategory('pinned'); haptic();" class="category-btn px-3.5 py-1.5 rounded-xl bg-white dark:bg-gray-900 text-amber-500 text-xs font-semibold whitespace-nowrap transition-all shadow-sm" data-cat="pinned"><i class="fas fa-thumbtack ml-1 text-[10px]"></i>المثبتة</button>
-                <button onclick="filterByCategory('work'); haptic();" class="category-btn px-3.5 py-1.5 rounded-xl bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-300 text-xs font-semibold whitespace-nowrap transition-all shadow-sm" data-cat="work"><i class="fas fa-briefcase ml-1 text-[10px]"></i>عمل</button>
-                <button onclick="filterByCategory('personal'); haptic();" class="category-btn px-3.5 py-1.5 rounded-xl bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-300 text-xs font-semibold whitespace-nowrap transition-all shadow-sm" data-cat="personal"><i class="fas fa-user ml-1 text-[10px]"></i>شخصي</button>
-                <button onclick="filterByCategory('learning'); haptic();" class="category-btn px-3.5 py-1.5 rounded-xl bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-300 text-xs font-semibold whitespace-nowrap transition-all shadow-sm" data-cat="learning"><i class="fas fa-graduation-cap ml-1 text-[10px]"></i>تعلم</button>
-                <button onclick="filterByCategory('entertainment'); haptic();" class="category-btn px-3.5 py-1.5 rounded-xl bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-300 text-xs font-semibold whitespace-nowrap transition-all shadow-sm" data-cat="entertainment"><i class="fas fa-gamepad ml-1 text-[10px]"></i>ترفيه</button>
-                <button onclick="filterByCategory('other'); haptic();" class="category-btn px-3.5 py-1.5 rounded-xl bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-300 text-xs font-semibold whitespace-nowrap transition-all shadow-sm" data-cat="other"><i class="fas fa-tag ml-1 text-[10px]"></i>أخرى</button>
-            </div>
-        </div>
-
-        <!-- Links Container -->
-        <div id="linksContainer" class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-24"></div>
-        <div id="emptyState" class="hidden text-center py-16">
-            <div class="w-16 h-16 mx-auto mb-3 rounded-full bg-gray-200 dark:bg-gray-900 flex items-center justify-center"><i class="fas fa-folder-open text-2xl text-gray-400"></i></div>
-            <h3 class="text-sm font-bold text-gray-500 mb-1">لا توجد روابط محفوظة</h3>
-            <p class="text-xs text-gray-400">اضغط على زر (+) بالأعلى لإضافة رابط جديد</p>
-        </div>
-
-    </main>
-
-    <!-- Modal 1: Add Link Sheet -->
-    <div id="addModal" class="fixed inset-0 z-50 hidden">
-        <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" onclick="closeAddSheet()"></div>
-        <div class="absolute bottom-0 inset-x-0 bg-white dark:bg-gray-900 rounded-t-3xl p-5 slide-up max-w-2xl mx-auto shadow-2xl safe-bottom max-h-[90vh] overflow-y-auto">
-            <div class="w-12 h-1 bg-gray-300 dark:bg-gray-700 rounded-full mx-auto mb-4"></div>
-            <h3 class="text-base font-bold mb-4 flex items-center gap-2"><i class="fas fa-plus-circle text-blue-500"></i> إضافة رابط جديد</h3>
-            <form id="addLinkForm" onsubmit="addLink(event)">
-                <div class="space-y-3 mb-4">
-                    <div>
-                        <label class="block text-xs font-semibold mb-1 text-gray-500">الرابط *</label>
-                        <input type="url" id="linkUrl" required placeholder="https://example.com" class="w-full px-4 py-2.5 rounded-xl bg-gray-100 dark:bg-gray-800 border-none outline-none text-xs font-medium">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-semibold mb-1 text-gray-500">عنوان الرابط *</label>
-                        <input type="text" id="linkName" required placeholder="اسم الصفحة أو الموقع" class="w-full px-4 py-2.5 rounded-xl bg-gray-100 dark:bg-gray-800 border-none outline-none text-xs font-medium">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-semibold mb-1 text-gray-500">ملاحظات (اختياري)</label>
-                        <textarea id="linkNotes" rows="2" placeholder="وصف قصير أو معلومات إضافية..." class="w-full px-4 py-2.5 rounded-xl bg-gray-100 dark:bg-gray-800 border-none outline-none text-xs font-medium resize-none"></textarea>
-                    </div>
-                    <div>
-                        <label class="block text-xs font-semibold mb-1.5 text-gray-500">التصنيف</label>
-                        <div class="flex gap-2 flex-wrap">
-                            <label><input type="radio" name="category" value="work" class="hidden peer"><span class="px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 text-xs peer-checked:bg-blue-600 peer-checked:text-white transition-all cursor-pointer">عمل</span></label>
-                            <label><input type="radio" name="category" value="personal" class="hidden peer" checked><span class="px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 text-xs peer-checked:bg-green-600 peer-checked:text-white transition-all cursor-pointer">شخصي</span></label>
-                            <label><input type="radio" name="category" value="learning" class="hidden peer"><span class="px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 text-xs peer-checked:bg-purple-600 peer-checked:text-white transition-all cursor-pointer">تعلم</span></label>
-                            <label><input type="radio" name="category" value="entertainment" class="hidden peer"><span class="px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 text-xs peer-checked:bg-pink-600 peer-checked:text-white transition-all cursor-pointer">ترفيه</span></label>
-                            <label><input type="radio" name="category" value="other" class="hidden peer"><span class="px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 text-xs peer-checked:bg-gray-600 peer-checked:text-white transition-all cursor-pointer">أخرى</span></label>
-                        </div>
-                    </div>
-                    <div>
-                        <label class="block text-xs font-semibold mb-1.5 text-gray-500">لون شريط البطاقة</label>
-                        <div class="flex gap-2">
-                            <div class="color-dot active bg-blue-500" onclick="selectColor(this,'blue')" data-color="blue"></div>
-                            <div class="color-dot bg-green-500" onclick="selectColor(this,'green')" data-color="green"></div>
-                            <div class="color-dot bg-purple-500" onclick="selectColor(this,'purple')" data-color="purple"></div>
-                            <div class="color-dot bg-pink-500" onclick="selectColor(this,'pink')" data-color="pink"></div>
-                            <div class="color-dot bg-orange-500" onclick="selectColor(this,'orange')" data-color="orange"></div>
-                            <div class="color-dot bg-red-500" onclick="selectColor(this,'red')" data-color="red"></div>
-                            <div class="color-dot bg-cyan-500" onclick="selectColor(this,'cyan')" data-color="cyan"></div>
-                            <div class="color-dot bg-gray-500" onclick="selectColor(this,'gray')" data-color="gray"></div>
-                        </div>
-                    </div>
-                </div>
-                <div class="flex gap-2">
-                    <button type="submit" class="flex-1 bg-blue-600 text-white font-bold py-3 rounded-xl active:scale-98 transition-all text-xs">حفظ الرابط</button>
-                    <button type="button" onclick="closeAddSheet()" class="px-5 py-3 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-500 text-xs font-semibold">إلغاء</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- Modal 2: Edit Link Sheet -->
-    <div id="editModal" class="fixed inset-0 z-50 hidden">
-        <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" onclick="closeEditModal()"></div>
-        <div class="absolute bottom-0 inset-x-0 bg-white dark:bg-gray-900 rounded-t-3xl p-5 slide-up max-w-2xl mx-auto shadow-2xl safe-bottom max-h-[90vh] overflow-y-auto">
-            <div class="w-12 h-1 bg-gray-300 dark:bg-gray-700 rounded-full mx-auto mb-4"></div>
-            <h3 class="text-base font-bold mb-4 flex items-center gap-2"><i class="fas fa-edit text-blue-500"></i> تعديل الرابط</h3>
-            <form id="editForm" onsubmit="saveEdit(event)">
-                <input type="hidden" id="editId">
-                <div class="space-y-3 mb-4">
-                    <div>
-                        <label class="block text-xs font-semibold mb-1 text-gray-500">الرابط</label>
-                        <input type="url" id="editUrl" required class="w-full px-4 py-2.5 rounded-xl bg-gray-100 dark:bg-gray-800 border-none outline-none text-xs font-medium">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-semibold mb-1 text-gray-500">اسم العنوان</label>
-                        <input type="text" id="editName" required class="w-full px-4 py-2.5 rounded-xl bg-gray-100 dark:bg-gray-800 border-none outline-none text-xs font-medium">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-semibold mb-1 text-gray-500">الملاحظات</label>
-                        <textarea id="editNotes" rows="2" class="w-full px-4 py-2.5 rounded-xl bg-gray-100 dark:bg-gray-800 border-none outline-none text-xs font-medium resize-none"></textarea>
-                    </div>
-                    <div>
-                        <label class="block text-xs font-semibold mb-1.5 text-gray-500">لون البطاقة</label>
-                        <div class="flex gap-2">
-                            <div class="color-dot bg-blue-500" onclick="selectEditColor(this,'blue')" data-edit-color="blue"></div>
-                            <div class="color-dot bg-green-500" onclick="selectEditColor(this,'green')" data-edit-color="green"></div>
-                            <div class="color-dot bg-purple-500" onclick="selectEditColor(this,'purple')" data-edit-color="purple"></div>
-                            <div class="color-dot bg-pink-500" onclick="selectEditColor(this,'pink')" data-edit-color="pink"></div>
-                            <div class="color-dot bg-orange-500" onclick="selectEditColor(this,'orange')" data-edit-color="orange"></div>
-                            <div class="color-dot bg-red-500" onclick="selectEditColor(this,'red')" data-edit-color="red"></div>
-                            <div class="color-dot bg-cyan-500" onclick="selectEditColor(this,'cyan')" data-edit-color="cyan"></div>
-                            <div class="color-dot bg-gray-500" onclick="selectEditColor(this,'gray')" data-edit-color="gray"></div>
-                        </div>
-                    </div>
-                </div>
-                <div class="flex gap-2">
-                    <button type="submit" class="flex-1 bg-blue-600 text-white font-bold py-3 rounded-xl active:scale-98 transition-all text-xs">تحديث البيانات</button>
-                    <button type="button" onclick="closeEditModal()" class="px-5 py-3 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-500 text-xs font-semibold">إلغاء</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- Modal 3: Backup & Restore -->
-    <div id="backupModal" class="fixed inset-0 z-50 hidden">
-        <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" onclick="toggleBackupModal()"></div>
-        <div class="absolute bottom-0 inset-x-0 bg-white dark:bg-gray-900 rounded-t-3xl p-5 slide-up max-w-2xl mx-auto shadow-2xl safe-bottom">
-            <div class="w-12 h-1 bg-gray-300 dark:bg-gray-700 rounded-full mx-auto mb-4"></div>
-            <h3 class="text-base font-bold mb-4 flex items-center gap-2"><i class="fas fa-database text-green-500"></i> النسخ الاحتياطي والاستعادة</h3>
-            <div class="space-y-3 mb-4">
-                <button onclick="exportData(); haptic();" class="w-full py-3 rounded-xl bg-green-600 text-white text-xs font-bold transition-all flex items-center justify-center gap-2">
-                    <i class="fas fa-download"></i> تصدير البيانات إلى ملف (JSON)
-                </button>
-                <div class="relative">
-                    <input type="file" id="importFile" accept=".json" onchange="importData(this)" class="hidden">
-                    <label for="importFile" class="w-full py-3 rounded-xl bg-blue-600 text-white text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer">
-                        <i class="fas fa-upload"></i> استيراد من ملف خارجي
-                    </label>
-                </div>
-            </div>
-            <button onclick="toggleBackupModal()" class="w-full py-2.5 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-500 text-xs font-semibold">إغلاق</button>
-        </div>
-    </div>
-
-    <!-- Toast Notification -->
-    <div id="toast" class="fixed bottom-20 left-1/2 -translate-x-1/2 transform translate-y-20 opacity-0 transition-all duration-300 z-50 pointer-events-none">
-        <div class="bg-gray-900/90 dark:bg-white/90 backdrop-blur-md text-white dark:text-gray-900 px-4 py-2 rounded-full shadow-lg flex items-center gap-2 text-xs font-medium">
-            <i id="toastIcon" class="fas fa-check-circle text-green-400"></i>
-            <span id="toastMessage">تمت العملية</span>
-        </div>
-    </div>
-
-    <script>
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('./sw.js').catch(err => console.log('SW error', err));
-        }
-
-        let links = JSON.parse(localStorage.getItem('myLinks')) || [];
-        let selectedColor = 'blue', editSelectedColor = 'blue', currentFilter = 'all', deferredPrompt = null;
-
-        const categoryConfig = {
-            work: {icon:'fa-briefcase', label:'عمل'},
-            personal: {icon:'fa-user', label:'شخصي'},
-            learning: {icon:'fa-graduation-cap', label:'تعلم'},
-            entertainment: {icon:'fa-gamepad', label:'ترفيه'},
-            other: {icon:'fa-tag', label:'أخرى'}
-        };
-
-        const colorMap = {
-            blue: 'from-blue-500 to-blue-600',
-            green: 'from-green-500 to-green-600',
-            purple: 'from-purple-500 to-purple-600',
-            pink: 'from-pink-500 to-pink-600',
-            orange: 'from-orange-500 to-orange-600',
-            red: 'from-red-500 to-red-600',
-            cyan: 'from-cyan-500 to-cyan-600',
-            gray: 'from-gray-500 to-gray-600'
-        };
-
-        document.addEventListener('DOMContentLoaded', () => {
-            renderLinks(); checkDarkMode();
-            window.addEventListener('beforeinstallprompt', (e) => {
-                e.preventDefault(); deferredPrompt = e;
-                document.getElementById('installBtn').classList.remove('hidden');
-            });
-        });
-
-        function haptic() { if (navigator.vibrate) navigator.vibrate(20); }
-        function checkDarkMode() { if (localStorage.getItem('darkMode') === 'true' || (!localStorage.getItem('darkMode') && window.matchMedia('(prefers-color-scheme: dark)').matches)) document.documentElement.classList.add('dark'); }
-        function toggleDarkMode() { document.documentElement.classList.toggle('dark'); localStorage.setItem('darkMode', document.documentElement.classList.contains('dark')); }
-
-        function selectColor(el, color) { document.querySelectorAll('#addModal .color-dot').forEach(d => d.classList.remove('active')); el.classList.add('active'); selectedColor = color; }
-        function selectEditColor(el, color) { document.querySelectorAll('#editModal .color-dot').forEach(d => d.classList.remove('active')); el.classList.add('active'); editSelectedColor = color; }
-
-        function openAddSheet() { document.getElementById('addModal').classList.remove('hidden'); }
-        function closeAddSheet() { document.getElementById('addModal').classList.add('hidden'); }
-        function closeEditModal() { document.getElementById('editModal').classList.add('hidden'); }
-        function toggleBackupModal() { document.getElementById('backupModal').classList.toggle('hidden'); }
-
-        function addLink(e) {
-            e.preventDefault();
-            let url = document.getElementById('linkUrl').value.trim();
-            const name = document.getElementById('linkName').value.trim();
-            const notes = document.getElementById('linkNotes').value.trim();
-            const category = document.querySelector('input[name="category"]:checked').value;
-
-            if (!url.startsWith('http://') && !url.startsWith('https://')) url = 'https://' + url;
-
-            const link = { 
-                id: Date.now(), 
-                url, 
-                name, 
-                notes, 
-                category, 
-                color: selectedColor, 
-                pinned: false,
-                clicks: 0,
-                lastOpened: null,
-                createdAt: new Date().toISOString() 
-            };
-            links.unshift(link); saveLinks(); renderLinks(); closeAddSheet();
-            document.getElementById('addLinkForm').reset();
-            selectColor(document.querySelector('#addModal .color-dot'), 'blue');
-            showToast('تم حفظ الرابط بنجاح');
-        }
-
-        function togglePin(id) {
-            const link = links.find(l => l.id === id);
-            if (link) {
-                link.pinned = !link.pinned;
-                saveLinks();
-                renderLinks();
-                showToast(link.pinned ? 'تم تثبيت الرابط' : 'تم إلغاء التثبيت');
-            }
-        }
-
-        function trackOpen(id, targetUrl, isChromeIntent = false) {
-            const link = links.find(l => l.id === id);
-            if (link) {
-                link.clicks = (link.clicks || 0) + 1;
-                link.lastOpened = new Date().toISOString();
-                saveLinks();
-                renderLinks();
-            }
-            if (isChromeIntent) {
-                const intentUrl = 'intent://' + targetUrl.replace(/^https?:\/\//, '') + '#Intent;scheme=https;package=com.android.chrome;end';
-                window.location.href = intentUrl;
-                setTimeout(() => { window.open(targetUrl, '_blank'); }, 300);
+            const icon = document.getElementById('toastIcon');
+            
+            if (type === 'success') {
+                icon.className = 'fas fa-check-circle text-green-400';
+            } else if (type === 'copy') {
+                icon.className = 'fas fa-copy text-blue-400';
             } else {
-                window.open(targetUrl, '_blank');
+                icon.className = 'fas fa-exclamation-circle text-red-400';
             }
-        }
-
-        function formatLastOpened(dateStr) {
-            if (!dateStr) return 'لم يفتح بعد';
-            const date = new Date(dateStr);
-            const now = new Date();
-            const diffMin = Math.floor((now - date) / (1000 * 60));
-
-            if (diffMin < 1) return 'الآن';
-            if (diffMin < 60) return `منذ ${diffMin} دقيقة`;
-            const diffHours = Math.floor(diffMin / 60);
-            if (diffHours < 24) return `منذ ${diffHours} ساعة`;
-            return date.toLocaleDateString('ar-SA', { month: 'short', day: 'numeric' });
-        }
-
-        function editLink(id) {
-            const link = links.find(l => l.id === id); if (!link) return;
-            document.getElementById('editId').value = id;
-            document.getElementById('editUrl').value = link.url;
-            document.getElementById('editName').value = link.name;
-            document.getElementById('editNotes').value = link.notes || '';
-
-            document.querySelectorAll('#editModal [data-edit-color]').forEach(d => {
-                d.classList.toggle('active', d.dataset.editColor === (link.color || 'blue'));
-            });
-            editSelectedColor = link.color || 'blue';
-            document.getElementById('editModal').classList.remove('hidden');
-        }
-
-        function saveEdit(e) {
-            e.preventDefault();
-            const id = parseInt(document.getElementById('editId').value);
-            const link = links.find(l => l.id === id); if (!link) return;
-
-            let url = document.getElementById('editUrl').value.trim();
-            if (!url.startsWith('http://') && !url.startsWith('https://')) url = 'https://' + url;
-
-            link.url = url;
-            link.name = document.getElementById('editName').value.trim();
-            link.notes = document.getElementById('editNotes').value.trim();
-            link.color = editSelectedColor;
-
-            saveLinks(); renderLinks(); closeEditModal();
-            showToast('تم تحديث البيانات');
-        }
-
-        function deleteLink(id) {
-            if (!confirm('هل تريد حذف هذا الرابط؟')) return;
-            links = links.filter(l => l.id !== id);
-            saveLinks(); renderLinks(); showToast('تم الحذف');
-        }
-
-        function renderLinks() {
-            const container = document.getElementById('linksContainer');
-            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
-
-            // ترتيب البطاقات: المثبت أولاً ثم حسب الأحدث
-            let sortedLinks = [...links].sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0));
-
-            let filtered = sortedLinks.filter(link => {
-                const matchesSearch = link.name.toLowerCase().includes(searchTerm) || (link.notes && link.notes.toLowerCase().includes(searchTerm)) || link.url.toLowerCase().includes(searchTerm);
-                const matchesCategory = currentFilter === 'all' ? true : currentFilter === 'pinned' ? link.pinned : link.category === currentFilter;
-                return matchesSearch && matchesCategory;
-            });
-
-            if (filtered.length === 0) { 
-                container.innerHTML = ''; 
-                document.getElementById('emptyState').classList.remove('hidden'); 
-                updateCount();
-                return; 
-            }
-
-            document.getElementById('emptyState').classList.add('hidden');
-            container.innerHTML = filtered.map(link => {
-                const domain = getDomain(link.url);
-                const faviconUrl = `https://icons.duckduckgo.com/ip3/${domain}.ico`;
-                const cat = categoryConfig[link.category] || categoryConfig.other;
-                const gradient = colorMap[link.color] || colorMap.blue;
-                const safeUrl = escapeHtml(link.url);
-                const safeName = escapeHtml(link.name);
-                const clicksCount = link.clicks || 0;
-                const lastTimeText = formatLastOpened(link.lastOpened);
-
-                return `<div class="relative bg-white dark:bg-gray-900 rounded-2xl p-4 shadow-sm border ${link.pinned ? 'border-amber-400 dark:border-amber-500/50 shadow-amber-500/5' : 'border-gray-100 dark:border-gray-800/80'} overflow-hidden transition-all">
-                    <div class="absolute top-0 right-0 left-0 h-1 bg-gradient-to-r ${gradient}"></div>
-
-                    <!-- الصف العلوي: أيقونة + اسم الرابط + تصنيف -->
-                    <div class="flex items-start gap-3 mb-3">
-                        <img src="${faviconUrl}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" class="w-11 h-11 rounded-xl object-cover bg-gray-50 dark:bg-gray-800 p-1 shrink-0 border border-gray-100 dark:border-gray-800 mt-0.5">
-                        <div class="w-11 h-11 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-sm shrink-0 hidden">${safeName.charAt(0).toUpperCase()}</div>
-
-                        <div class="flex-1 min-w-0">
-                            <div class="flex items-center gap-1.5 mb-1">
-                                ${link.pinned ? '<i class="fas fa-thumbtack text-amber-500 text-[10px] shrink-0"></i>' : ''}
-                                <span class="text-[10px] px-1.5 py-0.5 bg-gray-100 dark:bg-gray-800 text-gray-400 rounded-md shrink-0">${cat.label}</span>
-                            </div>
-                            <h3 class="link-title font-bold text-sm text-gray-900 dark:text-gray-100 leading-snug" onclick="trackOpen(${link.id}, '${safeUrl}'); haptic();">${safeName}</h3>
-                            ${link.notes ? `<p class="text-[11px] text-gray-400 mt-0.5 truncate">${escapeHtml(link.notes)}</p>` : ''}
-                        </div>
-                    </div>
-
-                    <!-- الأزرار -->
-                    <div class="flex items-center gap-1.5 mb-3">
-                        <button onclick="togglePin(${link.id}); haptic();" class="action-btn ${link.pinned ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-500' : 'bg-gray-100 dark:bg-gray-800 text-gray-400'}" title="تثبيت"><i class="fas fa-thumbtack"></i></button>
-                        <button onclick="copyLink('${safeUrl}'); haptic();" class="action-btn bg-gray-100 dark:bg-gray-800 text-gray-500 hover:text-blue-500" title="نسخ"><i class="fas fa-copy"></i></button>
-                        <button onclick="trackOpen(${link.id}, '${safeUrl}', true); haptic();" class="action-btn bg-gray-100 dark:bg-gray-800 text-gray-500 hover:text-green-500" title="فتح في Chrome"><i class="fab fa-chrome"></i></button>
-                        <button onclick="shareLink('${safeUrl}', '${safeName}'); haptic();" class="action-btn bg-gray-100 dark:bg-gray-800 text-gray-500 hover:text-purple-500" title="مشاركة"><i class="fas fa-share-alt"></i></button>
-                        <button onclick="editLink(${link.id}); haptic();" class="action-btn bg-gray-100 dark:bg-gray-800 text-gray-500 hover:text-blue-500" title="تعديل"><i class="fas fa-pen"></i></button>
-                        <button onclick="deleteLink(${link.id}); haptic();" class="action-btn bg-red-50 dark:bg-red-950/40 text-red-500" title="حذف"><i class="fas fa-trash-alt"></i></button>
-                    </div>
-
-                    <!-- الإحصائيات -->
-                    <div class="flex items-center gap-4 pt-2 border-t border-gray-100 dark:border-gray-800/60">
-                        <span class="flex items-center gap-1 text-[10px] text-gray-400 font-medium">
-                            <i class="fas fa-eye text-[9px] text-blue-400"></i> ${clicksCount} زيارة
-                        </span>
-                        <span class="flex items-center gap-1 text-[10px] text-gray-400 font-medium">
-                            <i class="fas fa-clock text-[9px] text-amber-400"></i> ${lastTimeText}
-                        </span>
-                        <span class="flex items-center gap-1 text-[10px] text-gray-400 font-medium mr-auto">
-                            <i class="fas fa-globe text-[9px] text-gray-300"></i> ${domain}
-                        </span>
-                    </div>
-                </div>`;
-            }).join('');
-            updateCount();
-        }
-
-        function getDomain(url) {
-            try { return new URL(url).hostname.replace('www.', ''); } catch { return url; }
-        }
-        function escapeHtml(text) { const div = document.createElement('div'); div.textContent = text; return div.innerHTML; }
-        function filterLinks() { renderLinks(); }
-
-        function filterByCategory(cat) {
-            currentFilter = cat;
-            document.querySelectorAll('.category-btn').forEach(btn => {
-                if (btn.dataset.cat === cat) { btn.classList.add('bg-blue-600','text-white'); btn.classList.remove('bg-white','dark:bg-gray-900','text-gray-600','dark:text-gray-300','text-amber-500'); }
-                else { 
-                    btn.classList.remove('bg-blue-600','text-white'); 
-                    btn.classList.add('bg-white','dark:bg-gray-900'); 
-                    if(btn.dataset.cat === 'pinned') btn.classList.add('text-amber-500');
-                    else btn.classList.add('text-gray-600','dark:text-gray-300');
-                }
-            });
-            renderLinks();
-        }
-
-        function copyLink(url) {
-            navigator.clipboard.writeText(url).then(() => showToast('تم نسخ الرابط'));
-        }
-
-        async function shareLink(url, title) {
-            if (navigator.share) {
-                try { await navigator.share({ title, url }); } catch (_) {}
-            } else copyLink(url);
-        }
-
-        function saveLinks() { localStorage.setItem('myLinks', JSON.stringify(links)); updateCount(); }
-        function updateCount() { document.getElementById('linksCount').textContent = links.length + ' رابط'; }
-
-        function exportData() {
-            const dataStr = JSON.stringify(links, null, 2);
-            const blob = new Blob([dataStr], {type:'application/json'});
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a'); a.href = url; a.download = `روابطي_${new Date().toLocaleDateString('ar-SA')}.json`; a.click(); URL.revokeObjectURL(url);
-            showToast('تم تصدير البيانات بنجاح');
-        }
-
-        function importData(input) {
-            const file = input.files[0]; if (!file) return;
-            const reader = new FileReader();
-            reader.onload = (e) => { 
-                try { 
-                    const imported = JSON.parse(e.target.result); 
-                    if (Array.isArray(imported)) { 
-                        links = imported; saveLinks(); renderLinks(); toggleBackupModal(); showToast('تم استيراد البيانات بنجاح'); 
-                    } else throw new Error(); 
-                } catch { showToast('ملف غير صالح', 'error'); } 
-            };
-            reader.readAsText(file); input.value = '';
-        }
-
-        function showToast(message, type='success') {
-            const toast = document.getElementById('toast');
-            document.getElementById('toastMessage').textContent = message;
-            document.getElementById('toastIcon').className = type === 'success' ? 'fas fa-check-circle text-green-400' : 'fas fa-exclamation-circle text-red-400';
+            
             toast.classList.remove('translate-y-20','opacity-0');
             setTimeout(() => toast.classList.add('translate-y-20','opacity-0'), 2500);
         }
