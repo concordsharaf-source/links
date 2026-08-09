@@ -71,18 +71,6 @@
             transform: scale(0.97);
         }
         
-        /* شاشة التحميل للـ fullscreen */
-        .fullscreen-frame {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            border: none;
-            z-index: 9999;
-            background: white;
-        }
-        
         /* ألوان الخلفية الشفافة */
         .bg-blue-bg { background-color: rgba(59, 130, 246, 0.12); }
         .bg-green-bg { background-color: rgba(34, 197, 94, 0.12); }
@@ -101,6 +89,25 @@
         .dark .bg-red-bg { background-color: rgba(239, 68, 68, 0.18); }
         .dark .bg-cyan-bg { background-color: rgba(6, 182, 212, 0.18); }
         .dark .bg-gray-bg { background-color: rgba(107, 114, 128, 0.18); }
+        
+        /* تأثيرات السحب */
+        .dragging {
+            opacity: 0.5;
+            transform: scale(0.95);
+            transition: all 0.2s;
+        }
+        .drag-over {
+            border: 2px dashed #3b82f6 !important;
+            transform: scale(1.02);
+            transition: all 0.2s;
+        }
+        .draggable-card {
+            cursor: grab;
+            transition: all 0.2s;
+        }
+        .draggable-card:active {
+            cursor: grabbing;
+        }
     </style>
 </head>
 <body class="bg-gray-100 dark:bg-gray-950 text-gray-800 dark:text-gray-100 min-h-screen safe-bottom transition-colors duration-300">
@@ -166,20 +173,9 @@
 
     </main>
 
-    <!-- شاشة fullscreen مخفية -->
+    <!-- شاشة fullscreen بدون أزرار -->
     <div id="fullscreenContainer" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; z-index:9999; background:white;">
-        <div style="display:flex; align-items:center; justify-content:space-between; padding:8px 16px; background:#f8f9fa; border-bottom:1px solid #e0e0e0;">
-            <span id="fullscreenTitle" style="font-size:14px; font-weight:bold; color:#333; font-family:'Cairo',sans-serif;"></span>
-            <div style="display:flex; gap:8px;">
-                <button onclick="toggleFullscreenMode()" style="background:#e8f0fe; border:none; padding:6px 12px; border-radius:8px; font-size:12px; cursor:pointer; color:#1a73e8; font-family:'Cairo',sans-serif;">
-                    <i class="fas fa-expand"></i> كامل
-                </button>
-                <button onclick="closeFullscreen()" style="background:#fce8e6; border:none; padding:6px 12px; border-radius:8px; font-size:12px; cursor:pointer; color:#d93025; font-family:'Cairo',sans-serif;">
-                    <i class="fas fa-times"></i> إغلاق
-                </button>
-            </div>
-        </div>
-        <iframe id="fullscreenFrame" style="width:100%; height:calc(100% - 45px); border:none;" sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox allow-top-navigation"></iframe>
+        <iframe id="fullscreenFrame" style="width:100%; height:100%; border:none;" sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox allow-top-navigation"></iframe>
     </div>
 
     <!-- Modal 1: Add Link Sheet -->
@@ -315,6 +311,8 @@
         let selectedColor = 'blue', editSelectedColor = 'blue', currentFilter = 'all', deferredPrompt = null;
         let openDropdownId = null;
         let openStatsId = null;
+        let draggedCard = null;
+        let draggedLinkId = null;
 
         const categoryConfig = {
             work: {icon:'fa-briefcase', label:'عمل'},
@@ -361,6 +359,14 @@
                 if (!e.target.closest('.stats-toggle') && !e.target.closest('.stats-content')) {
                     openStatsId = null;
                     renderLinks();
+                }
+            });
+
+            // التعامل مع زر الرجوع للخروج من fullscreen
+            window.addEventListener('popstate', function(e) {
+                if (document.getElementById('fullscreenContainer').style.display === 'block') {
+                    closeFullscreen();
+                    e.preventDefault();
                 }
             });
         });
@@ -465,15 +471,15 @@
             }
         }
 
-        // فتح الرابط في وضع ملء الشاشة داخل iframe
-        function openFullscreen(url, title) {
+        function openFullscreen(url) {
             const container = document.getElementById('fullscreenContainer');
             const frame = document.getElementById('fullscreenFrame');
-            const titleEl = document.getElementById('fullscreenTitle');
             
-            titleEl.textContent = title || url;
             frame.src = url;
             container.style.display = 'block';
+            
+            // إضافة حالة للسجل للسماح بزر الرجوع
+            history.pushState({fullscreen: true}, '', window.location.href);
             
             // محاولة تفعيل وضع fullscreen الحقيقي
             setTimeout(() => {
@@ -481,13 +487,10 @@
                     container.requestFullscreen().catch(() => {});
                 } else if (container.webkitRequestFullscreen) {
                     container.webkitRequestFullscreen();
-                } else if (container.msRequestFullscreen) {
-                    container.msRequestFullscreen();
                 }
-            }, 500);
+            }, 300);
             
             haptic();
-            showToast('تم الفتح في وضع ملء الشاشة', 'success');
         }
 
         function closeFullscreen() {
@@ -500,21 +503,10 @@
             
             frame.src = '';
             container.style.display = 'none';
-        }
-
-        function toggleFullscreenMode() {
-            const container = document.getElementById('fullscreenContainer');
             
-            if (!document.fullscreenElement) {
-                if (container.requestFullscreen) {
-                    container.requestFullscreen().catch(() => {});
-                } else if (container.webkitRequestFullscreen) {
-                    container.webkitRequestFullscreen();
-                }
-            } else {
-                if (document.exitFullscreen) {
-                    document.exitFullscreen();
-                }
+            // الرجوع في السجل إذا كنا في حالة fullscreen
+            if (history.state && history.state.fullscreen) {
+                history.back();
             }
         }
 
@@ -585,6 +577,79 @@
             saveLinks(); renderLinks(); showToast('تم الحذف');
         }
 
+        // دوال السحب والإفلات
+        function handleDragStart(e, linkId) {
+            draggedLinkId = linkId;
+            draggedCard = e.target.closest('.draggable-card');
+            
+            if (draggedCard) {
+                draggedCard.classList.add('dragging');
+                e.dataTransfer.effectAllowed = 'move';
+                e.dataTransfer.setData('text/plain', linkId.toString());
+            }
+        }
+
+        function handleDragEnd(e) {
+            if (draggedCard) {
+                draggedCard.classList.remove('dragging');
+            }
+            
+            // إزالة كل تأثيرات drag-over
+            document.querySelectorAll('.drag-over').forEach(card => {
+                card.classList.remove('drag-over');
+            });
+            
+            draggedCard = null;
+            draggedLinkId = null;
+        }
+
+        function handleDragOver(e) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            
+            const targetCard = e.target.closest('.draggable-card');
+            if (targetCard && !targetCard.classList.contains('dragging')) {
+                // إزالة التأثير من البطاقات الأخرى
+                document.querySelectorAll('.drag-over').forEach(card => {
+                    if (card !== targetCard) card.classList.remove('drag-over');
+                });
+                targetCard.classList.add('drag-over');
+            }
+        }
+
+        function handleDragLeave(e) {
+            const targetCard = e.target.closest('.draggable-card');
+            if (targetCard) {
+                targetCard.classList.remove('drag-over');
+            }
+        }
+
+        function handleDrop(e, targetId) {
+            e.preventDefault();
+            
+            if (!draggedLinkId || draggedLinkId === targetId) return;
+            
+            // إزالة التأثيرات
+            document.querySelectorAll('.drag-over').forEach(card => {
+                card.classList.remove('drag-over');
+            });
+            
+            // تبديل المواقع
+            const draggedIndex = links.findIndex(l => l.id === draggedLinkId);
+            const targetIndex = links.findIndex(l => l.id === targetId);
+            
+            if (draggedIndex !== -1 && targetIndex !== -1) {
+                const [removed] = links.splice(draggedIndex, 1);
+                links.splice(targetIndex, 0, removed);
+                saveLinks();
+                renderLinks();
+                showToast('تم تغيير الترتيب', 'success');
+            }
+            
+            draggedLinkId = null;
+            draggedCard = null;
+        }
+
         function renderLinks() {
             const container = document.getElementById('linksContainer');
             const searchTerm = document.getElementById('searchInput').value.toLowerCase();
@@ -618,7 +683,14 @@
                 const isDropdownOpen = openDropdownId === link.id;
                 const isStatsOpen = openStatsId === link.id;
 
-                return `<div class="relative ${bgColor} rounded-2xl p-4 shadow-sm border ${link.pinned ? 'border-amber-400 dark:border-amber-500/50 shadow-amber-500/5' : 'border-gray-200 dark:border-gray-800/80'} overflow-visible transition-all">
+                return `<div class="draggable-card relative ${bgColor} rounded-2xl p-4 shadow-sm border ${link.pinned ? 'border-amber-400 dark:border-amber-500/50 shadow-amber-500/5' : 'border-gray-200 dark:border-gray-800/80'} overflow-visible transition-all"
+                    draggable="true"
+                    data-link-id="${link.id}"
+                    ondragstart="handleDragStart(event, ${link.id})"
+                    ondragend="handleDragEnd(event)"
+                    ondragover="handleDragOver(event)"
+                    ondragleave="handleDragLeave(event)"
+                    ondrop="handleDrop(event, ${link.id})">
                     <div class="absolute top-0 right-0 left-0 h-1 bg-gradient-to-r ${gradient}"></div>
 
                     <div class="flex items-center gap-3">
@@ -632,10 +704,9 @@
                                     data-link-id="${link.id}" 
                                     data-link-url="${safeUrl}"
                                     data-link-name="${safeName}"
-                                    title="اضغط للفتح - اضغط مطولاً للنسخ - اضغط ⛶ لملء الشاشة">${safeName}</h3>
+                                    title="اضغط للفتح - اضغط مطولاً للنسخ - ⛶ ملء الشاشة - اسحب للترتيب">${safeName}</h3>
                                 
-                                <!-- زر fullscreen جديد -->
-                                <button onclick="event.stopPropagation(); openFullscreen('${safeUrl}', '${safeName}'); haptic();" 
+                                <button onclick="event.stopPropagation(); openFullscreen('${safeUrl}'); haptic();" 
                                     class="w-8 h-8 rounded-lg bg-white/60 dark:bg-gray-800/60 flex items-center justify-center text-gray-500 hover:bg-blue-100 dark:hover:bg-blue-900/30 hover:text-blue-600 transition-all shrink-0"
                                     title="فتح في ملء الشاشة">
                                     <i class="fas fa-expand text-xs"></i>
@@ -650,7 +721,7 @@
                                         <button onclick="event.stopPropagation(); copyLinkDirect('${safeUrl}'); haptic();" class="w-full px-4 py-2.5 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-3 transition-all">
                                             <i class="fas fa-copy text-blue-500 w-4 text-center"></i> نسخ الرابط
                                         </button>
-                                        <button onclick="event.stopPropagation(); openFullscreen('${safeUrl}', '${safeName}'); haptic();" class="w-full px-4 py-2.5 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-3 transition-all">
+                                        <button onclick="event.stopPropagation(); openFullscreen('${safeUrl}'); haptic();" class="w-full px-4 py-2.5 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-3 transition-all">
                                             <i class="fas fa-expand text-indigo-500 w-4 text-center"></i> فتح ملء الشاشة
                                         </button>
                                         <button onclick="event.stopPropagation(); trackOpen(${link.id}, '${safeUrl}', true); haptic();" class="w-full px-4 py-2.5 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-3 transition-all">
@@ -716,7 +787,6 @@
             linkTitles.forEach(title => {
                 const linkId = parseInt(title.dataset.linkId);
                 const linkUrl = title.dataset.linkUrl;
-                const linkName = title.dataset.linkName;
                 let longPressTimer = null;
                 let isLongPress = false;
                 
