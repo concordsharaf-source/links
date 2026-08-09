@@ -71,7 +71,19 @@
             transform: scale(0.97);
         }
         
-        /* ألوان الخلفية الشفافة - أوضح */
+        /* شاشة التحميل للـ fullscreen */
+        .fullscreen-frame {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border: none;
+            z-index: 9999;
+            background: white;
+        }
+        
+        /* ألوان الخلفية الشفافة */
         .bg-blue-bg { background-color: rgba(59, 130, 246, 0.12); }
         .bg-green-bg { background-color: rgba(34, 197, 94, 0.12); }
         .bg-purple-bg { background-color: rgba(168, 85, 247, 0.12); }
@@ -153,6 +165,22 @@
         </div>
 
     </main>
+
+    <!-- شاشة fullscreen مخفية -->
+    <div id="fullscreenContainer" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; z-index:9999; background:white;">
+        <div style="display:flex; align-items:center; justify-content:space-between; padding:8px 16px; background:#f8f9fa; border-bottom:1px solid #e0e0e0;">
+            <span id="fullscreenTitle" style="font-size:14px; font-weight:bold; color:#333; font-family:'Cairo',sans-serif;"></span>
+            <div style="display:flex; gap:8px;">
+                <button onclick="toggleFullscreenMode()" style="background:#e8f0fe; border:none; padding:6px 12px; border-radius:8px; font-size:12px; cursor:pointer; color:#1a73e8; font-family:'Cairo',sans-serif;">
+                    <i class="fas fa-expand"></i> كامل
+                </button>
+                <button onclick="closeFullscreen()" style="background:#fce8e6; border:none; padding:6px 12px; border-radius:8px; font-size:12px; cursor:pointer; color:#d93025; font-family:'Cairo',sans-serif;">
+                    <i class="fas fa-times"></i> إغلاق
+                </button>
+            </div>
+        </div>
+        <iframe id="fullscreenFrame" style="width:100%; height:calc(100% - 45px); border:none;" sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox allow-top-navigation"></iframe>
+    </div>
 
     <!-- Modal 1: Add Link Sheet -->
     <div id="addModal" class="fixed inset-0 z-50 hidden">
@@ -325,7 +353,6 @@
                 document.getElementById('installBtn').classList.remove('hidden');
             });
             
-            // إغلاق القوائم المنسدلة عند النقر خارجها
             document.addEventListener('click', (e) => {
                 if (!e.target.closest('.dropdown-toggle') && !e.target.closest('.dropdown-menu')) {
                     openDropdownId = null;
@@ -405,14 +432,10 @@
             renderLinks();
         }
 
-        // دالة النسخ الآمنة التي تعمل على جميع المتصفحات
         function copyToClipboard(text) {
-            // الطريقة الأولى: استخدام Clipboard API
             if (navigator.clipboard && window.isSecureContext) {
                 return navigator.clipboard.writeText(text).then(() => true).catch(() => false);
             }
-            
-            // الطريقة الثانية: استخدام textarea احتياطي
             return new Promise((resolve) => {
                 try {
                     const textArea = document.createElement('textarea');
@@ -439,6 +462,59 @@
                 showToast('تم نسخ الرابط ✓', 'copy');
             } else {
                 showToast('فشل نسخ الرابط ✗', 'error');
+            }
+        }
+
+        // فتح الرابط في وضع ملء الشاشة داخل iframe
+        function openFullscreen(url, title) {
+            const container = document.getElementById('fullscreenContainer');
+            const frame = document.getElementById('fullscreenFrame');
+            const titleEl = document.getElementById('fullscreenTitle');
+            
+            titleEl.textContent = title || url;
+            frame.src = url;
+            container.style.display = 'block';
+            
+            // محاولة تفعيل وضع fullscreen الحقيقي
+            setTimeout(() => {
+                if (container.requestFullscreen) {
+                    container.requestFullscreen().catch(() => {});
+                } else if (container.webkitRequestFullscreen) {
+                    container.webkitRequestFullscreen();
+                } else if (container.msRequestFullscreen) {
+                    container.msRequestFullscreen();
+                }
+            }, 500);
+            
+            haptic();
+            showToast('تم الفتح في وضع ملء الشاشة', 'success');
+        }
+
+        function closeFullscreen() {
+            const container = document.getElementById('fullscreenContainer');
+            const frame = document.getElementById('fullscreenFrame');
+            
+            if (document.fullscreenElement) {
+                document.exitFullscreen().catch(() => {});
+            }
+            
+            frame.src = '';
+            container.style.display = 'none';
+        }
+
+        function toggleFullscreenMode() {
+            const container = document.getElementById('fullscreenContainer');
+            
+            if (!document.fullscreenElement) {
+                if (container.requestFullscreen) {
+                    container.requestFullscreen().catch(() => {});
+                } else if (container.webkitRequestFullscreen) {
+                    container.webkitRequestFullscreen();
+                }
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                }
             }
         }
 
@@ -545,7 +621,6 @@
                 return `<div class="relative ${bgColor} rounded-2xl p-4 shadow-sm border ${link.pinned ? 'border-amber-400 dark:border-amber-500/50 shadow-amber-500/5' : 'border-gray-200 dark:border-gray-800/80'} overflow-visible transition-all">
                     <div class="absolute top-0 right-0 left-0 h-1 bg-gradient-to-r ${gradient}"></div>
 
-                    <!-- الصف العلوي: أيقونة + اسم الرابط + زر القائمة المنسدلة -->
                     <div class="flex items-center gap-3">
                         <img src="${faviconUrl}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" class="w-12 h-12 rounded-xl object-cover bg-white dark:bg-gray-800 p-1 shrink-0 border border-gray-100 dark:border-gray-700">
                         <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-sm shrink-0 hidden">${safeName.charAt(0).toUpperCase()}</div>
@@ -556,8 +631,17 @@
                                 <h3 class="link-title font-bold text-lg text-gray-900 dark:text-gray-100 leading-snug truncate select-none" 
                                     data-link-id="${link.id}" 
                                     data-link-url="${safeUrl}"
-                                    title="اضغط للفتح - اضغط مطولاً للنسخ">${safeName}</h3>
-                                <div class="relative mr-auto">
+                                    data-link-name="${safeName}"
+                                    title="اضغط للفتح - اضغط مطولاً للنسخ - اضغط ⛶ لملء الشاشة">${safeName}</h3>
+                                
+                                <!-- زر fullscreen جديد -->
+                                <button onclick="event.stopPropagation(); openFullscreen('${safeUrl}', '${safeName}'); haptic();" 
+                                    class="w-8 h-8 rounded-lg bg-white/60 dark:bg-gray-800/60 flex items-center justify-center text-gray-500 hover:bg-blue-100 dark:hover:bg-blue-900/30 hover:text-blue-600 transition-all shrink-0"
+                                    title="فتح في ملء الشاشة">
+                                    <i class="fas fa-expand text-xs"></i>
+                                </button>
+                                
+                                <div class="relative">
                                     <button onclick="event.stopPropagation(); toggleDropdown(${link.id}); haptic();" class="dropdown-toggle w-8 h-8 rounded-lg bg-white/60 dark:bg-gray-800/60 flex items-center justify-center text-gray-500 hover:bg-white dark:hover:bg-gray-700 transition-all shrink-0">
                                         <i class="fas fa-chevron-down text-xs transition-transform ${isDropdownOpen ? 'rotate-180' : ''}"></i>
                                     </button>
@@ -565,6 +649,9 @@
                                     <div class="dropdown-menu absolute left-0 top-full mt-1 w-56 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 py-1 z-50 dropdown-enter">
                                         <button onclick="event.stopPropagation(); copyLinkDirect('${safeUrl}'); haptic();" class="w-full px-4 py-2.5 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-3 transition-all">
                                             <i class="fas fa-copy text-blue-500 w-4 text-center"></i> نسخ الرابط
+                                        </button>
+                                        <button onclick="event.stopPropagation(); openFullscreen('${safeUrl}', '${safeName}'); haptic();" class="w-full px-4 py-2.5 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-3 transition-all">
+                                            <i class="fas fa-expand text-indigo-500 w-4 text-center"></i> فتح ملء الشاشة
                                         </button>
                                         <button onclick="event.stopPropagation(); trackOpen(${link.id}, '${safeUrl}', true); haptic();" class="w-full px-4 py-2.5 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-3 transition-all">
                                             <i class="fab fa-chrome text-green-500 w-4 text-center"></i> فتح في Chrome
@@ -629,14 +716,13 @@
             linkTitles.forEach(title => {
                 const linkId = parseInt(title.dataset.linkId);
                 const linkUrl = title.dataset.linkUrl;
+                const linkName = title.dataset.linkName;
                 let longPressTimer = null;
                 let isLongPress = false;
                 
-                // تنظيف الأحداث القديمة
                 const newTitle = title.cloneNode(true);
                 title.parentNode.replaceChild(newTitle, title);
                 
-                // النقر العادي لفتح الرابط
                 newTitle.addEventListener('click', function(e) {
                     if (isLongPress) {
                         isLongPress = false;
@@ -647,7 +733,6 @@
                     trackOpen(linkId, linkUrl);
                 });
                 
-                // بدء الضغط المطول
                 newTitle.addEventListener('mousedown', function(e) {
                     isLongPress = false;
                     longPressTimer = setTimeout(() => {
@@ -668,7 +753,6 @@
                     }, 600);
                 });
                 
-                // إلغاء الضغط المطول
                 const cancelLongPress = () => {
                     clearTimeout(longPressTimer);
                 };
