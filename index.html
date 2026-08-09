@@ -92,21 +92,26 @@
         
         /* تأثيرات السحب */
         .dragging {
-            opacity: 0.5;
+            opacity: 0.4;
             transform: scale(0.95);
+            border: 2px dashed #94a3b8 !important;
             transition: all 0.2s;
         }
         .drag-over {
             border: 2px dashed #3b82f6 !important;
-            transform: scale(1.02);
+            transform: scale(1.03);
             transition: all 0.2s;
+            background-color: rgba(59, 130, 246, 0.05) !important;
         }
-        .draggable-card {
-            cursor: grab;
-            transition: all 0.2s;
+        
+        /* أيقونة القائمة بلون أبيض */
+        .dropdown-toggle i {
+            color: #ffffff !important;
+            text-shadow: 0 1px 3px rgba(0,0,0,0.3);
         }
-        .draggable-card:active {
-            cursor: grabbing;
+        .dark .dropdown-toggle i {
+            color: #ffffff !important;
+            text-shadow: 0 1px 3px rgba(0,0,0,0.5);
         }
     </style>
 </head>
@@ -173,9 +178,9 @@
 
     </main>
 
-    <!-- شاشة fullscreen بدون أزرار -->
+    <!-- شاشة fullscreen بدون أي أزرار -->
     <div id="fullscreenContainer" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; z-index:9999; background:white;">
-        <iframe id="fullscreenFrame" style="width:100%; height:100%; border:none;" sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox allow-top-navigation"></iframe>
+        <iframe id="fullscreenFrame" style="width:100%; height:100%; border:none;" sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox allow-top-navigation allow-modals allow-presentation"></iframe>
     </div>
 
     <!-- Modal 1: Add Link Sheet -->
@@ -281,12 +286,12 @@
             <h3 class="text-base font-bold mb-4 flex items-center gap-2"><i class="fas fa-database text-green-500"></i> النسخ الاحتياطي والاستعادة</h3>
             <div class="space-y-3 mb-4">
                 <button onclick="exportData(); haptic();" class="w-full py-3 rounded-xl bg-green-600 text-white text-xs font-bold transition-all flex items-center justify-center gap-2">
-                    <i class="fas fa-download"></i> تصدير البيانات إلى ملف (JSON)
+                    <i class="fas fa-arrow-up-from-bracket"></i> تصدير البيانات إلى ملف (JSON)
                 </button>
                 <div class="relative">
                     <input type="file" id="importFile" accept=".json" onchange="importData(this)" class="hidden">
                     <label for="importFile" class="w-full py-3 rounded-xl bg-blue-600 text-white text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer">
-                        <i class="fas fa-upload"></i> استيراد من ملف خارجي
+                        <i class="fas fa-arrow-down-to-bracket"></i> استيراد من ملف خارجي
                     </label>
                 </div>
             </div>
@@ -313,6 +318,8 @@
         let openStatsId = null;
         let draggedCard = null;
         let draggedLinkId = null;
+        let longPressDragTimer = null;
+        let isDragMode = false;
 
         const categoryConfig = {
             work: {icon:'fa-briefcase', label:'عمل'},
@@ -368,6 +375,14 @@
                     closeFullscreen();
                     e.preventDefault();
                 }
+            });
+
+            // منع السحب الافتراضي للمتصفح
+            document.addEventListener('dragover', function(e) {
+                e.preventDefault();
+            });
+            document.addEventListener('drop', function(e) {
+                e.preventDefault();
             });
         });
 
@@ -471,6 +486,7 @@
             }
         }
 
+        // فتح الرابط في وضع fullscreen بدون أي أزرار
         function openFullscreen(url) {
             const container = document.getElementById('fullscreenContainer');
             const frame = document.getElementById('fullscreenFrame');
@@ -479,35 +495,38 @@
             container.style.display = 'block';
             
             // إضافة حالة للسجل للسماح بزر الرجوع
-            history.pushState({fullscreen: true}, '', window.location.href);
+            history.pushState({fullscreen: true, url: url}, '', window.location.href);
             
-            // محاولة تفعيل وضع fullscreen الحقيقي
+            // محاولة الدخول في وضع fullscreen الحقيقي للمتصفح
             setTimeout(() => {
                 if (container.requestFullscreen) {
                     container.requestFullscreen().catch(() => {});
                 } else if (container.webkitRequestFullscreen) {
                     container.webkitRequestFullscreen();
+                } else if (container.msRequestFullscreen) {
+                    container.msRequestFullscreen();
                 }
-            }, 300);
+            }, 500);
             
             haptic();
+            showToast('للخروج اضغط زر الرجوع', 'copy');
         }
 
         function closeFullscreen() {
             const container = document.getElementById('fullscreenContainer');
             const frame = document.getElementById('fullscreenFrame');
             
+            // الخروج من وضع fullscreen للمتصفح
             if (document.fullscreenElement) {
                 document.exitFullscreen().catch(() => {});
+            } else if (document.webkitFullscreenElement) {
+                document.webkitExitFullscreen();
+            } else if (document.msFullscreenElement) {
+                document.msExitFullscreen();
             }
             
             frame.src = '';
             container.style.display = 'none';
-            
-            // الرجوع في السجل إذا كنا في حالة fullscreen
-            if (history.state && history.state.fullscreen) {
-                history.back();
-            }
         }
 
         function trackOpen(id, targetUrl, isChromeIntent = false) {
@@ -579,6 +598,11 @@
 
         // دوال السحب والإفلات
         function handleDragStart(e, linkId) {
+            if (isDragMode) {
+                e.preventDefault();
+                return;
+            }
+            
             draggedLinkId = linkId;
             draggedCard = e.target.closest('.draggable-card');
             
@@ -594,7 +618,6 @@
                 draggedCard.classList.remove('dragging');
             }
             
-            // إزالة كل تأثيرات drag-over
             document.querySelectorAll('.drag-over').forEach(card => {
                 card.classList.remove('drag-over');
             });
@@ -609,7 +632,6 @@
             
             const targetCard = e.target.closest('.draggable-card');
             if (targetCard && !targetCard.classList.contains('dragging')) {
-                // إزالة التأثير من البطاقات الأخرى
                 document.querySelectorAll('.drag-over').forEach(card => {
                     if (card !== targetCard) card.classList.remove('drag-over');
                 });
@@ -629,12 +651,10 @@
             
             if (!draggedLinkId || draggedLinkId === targetId) return;
             
-            // إزالة التأثيرات
             document.querySelectorAll('.drag-over').forEach(card => {
                 card.classList.remove('drag-over');
             });
             
-            // تبديل المواقع
             const draggedIndex = links.findIndex(l => l.id === draggedLinkId);
             const targetIndex = links.findIndex(l => l.id === targetId);
             
@@ -643,11 +663,97 @@
                 links.splice(targetIndex, 0, removed);
                 saveLinks();
                 renderLinks();
-                showToast('تم تغيير الترتيب', 'success');
+                showToast('تم تغيير الترتيب ✓', 'success');
             }
             
             draggedLinkId = null;
             draggedCard = null;
+        }
+
+        // السحب باللمس (Touch)
+        function initTouchDrag(card, linkId) {
+            let touchStartY = 0;
+            let touchStartX = 0;
+            let touchMoved = false;
+            
+            card.addEventListener('touchstart', function(e) {
+                const target = e.target;
+                if (target.closest('button') || target.closest('.link-title') || target.closest('img')) {
+                    return;
+                }
+                
+                const touch = e.touches[0];
+                touchStartY = touch.clientY;
+                touchStartX = touch.clientX;
+                touchMoved = false;
+                
+                longPressDragTimer = setTimeout(() => {
+                    isDragMode = true;
+                    card.classList.add('dragging');
+                    card.setAttribute('draggable', 'true');
+                    haptic();
+                    if (navigator.vibrate) navigator.vibrate([50]);
+                    showToast('اسحب البطاقة لتغيير مكانها', 'copy');
+                }, 500);
+            }, {passive: false});
+            
+            card.addEventListener('touchmove', function(e) {
+                if (!isDragMode) {
+                    const touch = e.touches[0];
+                    if (Math.abs(touch.clientY - touchStartY) > 10 || Math.abs(touch.clientX - touchStartX) > 10) {
+                        clearTimeout(longPressDragTimer);
+                    }
+                    return;
+                }
+                
+                e.preventDefault();
+                touchMoved = true;
+                
+                const touch = e.touches[0];
+                const elementUnderTouch = document.elementFromPoint(touch.clientX, touch.clientY);
+                const targetCard = elementUnderTouch?.closest('.draggable-card');
+                
+                document.querySelectorAll('.drag-over').forEach(c => c.classList.remove('drag-over'));
+                
+                if (targetCard && targetCard !== card && !targetCard.classList.contains('dragging')) {
+                    targetCard.classList.add('drag-over');
+                }
+            }, {passive: false});
+            
+            card.addEventListener('touchend', function(e) {
+                clearTimeout(longPressDragTimer);
+                
+                if (isDragMode && touchMoved) {
+                    const touch = e.changedTouches[0];
+                    const elementUnderTouch = document.elementFromPoint(touch.clientX, touch.clientY);
+                    const targetCard = elementUnderTouch?.closest('.draggable-card');
+                    
+                    if (targetCard && targetCard !== card) {
+                        const targetId = parseInt(targetCard.dataset.linkId);
+                        handleDropTouch(linkId, targetId);
+                    }
+                }
+                
+                card.classList.remove('dragging');
+                card.setAttribute('draggable', 'false');
+                document.querySelectorAll('.drag-over').forEach(c => c.classList.remove('drag-over'));
+                isDragMode = false;
+            });
+        }
+
+        function handleDropTouch(draggedId, targetId) {
+            if (draggedId === targetId) return;
+            
+            const draggedIndex = links.findIndex(l => l.id === draggedId);
+            const targetIndex = links.findIndex(l => l.id === targetId);
+            
+            if (draggedIndex !== -1 && targetIndex !== -1) {
+                const [removed] = links.splice(draggedIndex, 1);
+                links.splice(targetIndex, 0, removed);
+                saveLinks();
+                renderLinks();
+                showToast('تم تغيير الترتيب ✓', 'success');
+            }
         }
 
         function renderLinks() {
@@ -684,7 +790,7 @@
                 const isStatsOpen = openStatsId === link.id;
 
                 return `<div class="draggable-card relative ${bgColor} rounded-2xl p-4 shadow-sm border ${link.pinned ? 'border-amber-400 dark:border-amber-500/50 shadow-amber-500/5' : 'border-gray-200 dark:border-gray-800/80'} overflow-visible transition-all"
-                    draggable="true"
+                    draggable="false"
                     data-link-id="${link.id}"
                     ondragstart="handleDragStart(event, ${link.id})"
                     ondragend="handleDragEnd(event)"
@@ -704,25 +810,19 @@
                                     data-link-id="${link.id}" 
                                     data-link-url="${safeUrl}"
                                     data-link-name="${safeName}"
-                                    title="اضغط للفتح - اضغط مطولاً للنسخ - ⛶ ملء الشاشة - اسحب للترتيب">${safeName}</h3>
+                                    title="اضغط للفتح - اضغط مطولاً للنسخ - اسحب لتغيير المكان">${safeName}</h3>
                                 
-                                <button onclick="event.stopPropagation(); openFullscreen('${safeUrl}'); haptic();" 
-                                    class="w-8 h-8 rounded-lg bg-white/60 dark:bg-gray-800/60 flex items-center justify-center text-gray-500 hover:bg-blue-100 dark:hover:bg-blue-900/30 hover:text-blue-600 transition-all shrink-0"
-                                    title="فتح في ملء الشاشة">
-                                    <i class="fas fa-expand text-xs"></i>
-                                </button>
-                                
-                                <div class="relative">
-                                    <button onclick="event.stopPropagation(); toggleDropdown(${link.id}); haptic();" class="dropdown-toggle w-8 h-8 rounded-lg bg-white/60 dark:bg-gray-800/60 flex items-center justify-center text-gray-500 hover:bg-white dark:hover:bg-gray-700 transition-all shrink-0">
+                                <div class="relative mr-auto">
+                                    <button onclick="event.stopPropagation(); toggleDropdown(${link.id}); haptic();" class="dropdown-toggle w-8 h-8 rounded-lg bg-gray-700/80 dark:bg-gray-600/80 flex items-center justify-center hover:bg-gray-600 dark:hover:bg-gray-500 transition-all shrink-0">
                                         <i class="fas fa-chevron-down text-xs transition-transform ${isDropdownOpen ? 'rotate-180' : ''}"></i>
                                     </button>
                                     ${isDropdownOpen ? `
                                     <div class="dropdown-menu absolute left-0 top-full mt-1 w-56 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 py-1 z-50 dropdown-enter">
+                                        <button onclick="event.stopPropagation(); openFullscreen('${safeUrl}'); haptic();" class="w-full px-4 py-2.5 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-3 transition-all">
+                                            <i class="fas fa-expand text-indigo-500 w-4 text-center"></i> فتح في وضع ملء الشاشة
+                                        </button>
                                         <button onclick="event.stopPropagation(); copyLinkDirect('${safeUrl}'); haptic();" class="w-full px-4 py-2.5 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-3 transition-all">
                                             <i class="fas fa-copy text-blue-500 w-4 text-center"></i> نسخ الرابط
-                                        </button>
-                                        <button onclick="event.stopPropagation(); openFullscreen('${safeUrl}'); haptic();" class="w-full px-4 py-2.5 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-3 transition-all">
-                                            <i class="fas fa-expand text-indigo-500 w-4 text-center"></i> فتح ملء الشاشة
                                         </button>
                                         <button onclick="event.stopPropagation(); trackOpen(${link.id}, '${safeUrl}', true); haptic();" class="w-full px-4 py-2.5 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-3 transition-all">
                                             <i class="fab fa-chrome text-green-500 w-4 text-center"></i> فتح في Chrome
@@ -779,6 +879,7 @@
             
             updateCount();
             attachLinkEvents();
+            attachTouchDragEvents();
         }
         
         function attachLinkEvents() {
@@ -831,6 +932,14 @@
                 newTitle.addEventListener('mouseleave', cancelLongPress);
                 newTitle.addEventListener('touchend', cancelLongPress);
                 newTitle.addEventListener('touchmove', cancelLongPress);
+            });
+        }
+
+        function attachTouchDragEvents() {
+            const cards = document.querySelectorAll('.draggable-card');
+            cards.forEach(card => {
+                const linkId = parseInt(card.dataset.linkId);
+                initTouchDrag(card, linkId);
             });
         }
 
