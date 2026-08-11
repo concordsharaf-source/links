@@ -16,7 +16,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
-    
+
     <!-- Font Awesome - رابطين احتياط -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
@@ -73,7 +73,7 @@
         .link-title:active {
             transform: scale(0.97);
         }
-        
+
         /* ألوان الخلفية الشفافة */
         .bg-blue-bg { background-color: rgba(59, 130, 246, 0.12); }
         .bg-green-bg { background-color: rgba(34, 197, 94, 0.12); }
@@ -83,7 +83,7 @@
         .bg-red-bg { background-color: rgba(239, 68, 68, 0.12); }
         .bg-cyan-bg { background-color: rgba(6, 182, 212, 0.12); }
         .bg-gray-bg { background-color: rgba(107, 114, 128, 0.12); }
-        
+
         .dark .bg-blue-bg { background-color: rgba(59, 130, 246, 0.18); }
         .dark .bg-green-bg { background-color: rgba(34, 197, 94, 0.18); }
         .dark .bg-purple-bg { background-color: rgba(168, 85, 247, 0.18); }
@@ -92,7 +92,7 @@
         .dark .bg-red-bg { background-color: rgba(239, 68, 68, 0.18); }
         .dark .bg-cyan-bg { background-color: rgba(6, 182, 212, 0.18); }
         .dark .bg-gray-bg { background-color: rgba(107, 114, 128, 0.18); }
-        
+
         /* تأثيرات السحب */
         .dragging {
             opacity: 0.4;
@@ -106,7 +106,7 @@
             transition: all 0.2s;
             background-color: rgba(59, 130, 246, 0.05) !important;
         }
-        
+
         /* أيقونة القائمة بلون أبيض */
         .dropdown-toggle span {
             color: #ffffff !important;
@@ -352,7 +352,7 @@
             cyan: 'from-cyan-500 to-cyan-600',
             gray: 'from-gray-500 to-gray-600'
         };
-        
+
         const bgColorMap = {
             blue: 'bg-blue-bg',
             green: 'bg-green-bg',
@@ -370,7 +370,7 @@
                 e.preventDefault(); deferredPrompt = e;
                 document.getElementById('installBtn').classList.remove('hidden');
             });
-            
+
             document.addEventListener('click', (e) => {
                 if (!e.target.closest('.dropdown-toggle') && !e.target.closest('.dropdown-menu')) {
                     openDropdownId = null;
@@ -497,71 +497,15 @@
             }
         }
 
-        // دالة جلب الأيقونة من مصادر متعددة
-        function getFaviconUrl(domain, url) {
-            // نحاول استخدام الرابط المباشر للأيقونة من الموقع نفسه أولاً
-            const directFavicon = url + '/favicon.ico';
-            
-            // خدمة Google Favicon الأساسية
-            const googleFavicon1 = `https://www.google.com/s2/favicons?domain=${domain}&sz=64`;
-            
-            // خدمة Google Favicon الاحتياطية
-            const googleFavicon2 = `https://t0.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=${url}&size=64`;
-            
-            // خدمة DuckDuckGo
-            const duckDuckGoFavicon = `https://icons.duckduckgo.com/ip3/${domain}.ico`;
-            
-            // خدمة FaviconKit
-            const faviconKit = `https://api.faviconkit.com/${domain}/64`;
-            
-            // نعيد المصفوفة كاملة لنجرب واحدة تلو الأخرى
-            return [googleFavicon1, googleFavicon2, faviconKit, duckDuckGoFavicon, directFavicon];
-        }
-
-        // دالة محسنة لتحميل الأيقونة مع احتياطي تلقائي
-        function loadFavicon(imgElement, domain, url) {
-            const urls = getFaviconUrl(domain, url);
-            let currentIndex = 0;
-            
-            function tryNextUrl() {
-                if (currentIndex >= urls.length) {
-                    // كل المحاولات فشلت، نعرض الحرف الأول
-                    imgElement.style.display = 'none';
-                    const fallback = imgElement.nextElementSibling;
-                    if (fallback) {
-                        fallback.style.display = 'flex';
-                    }
-                    return;
-                }
-                
-                const testImg = new Image();
-                testImg.onload = function() {
-                    imgElement.src = urls[currentIndex];
-                };
-                testImg.onerror = function() {
-                    currentIndex++;
-                    tryNextUrl();
-                };
-                testImg.src = urls[currentIndex];
-            }
-            
-            // نبدأ بالمصدر الأول مباشرة
-            imgElement.src = urls[0];
-            imgElement.onerror = function() {
-                currentIndex = 1; // نبدأ من المصدر الثاني لأن الأول فشل
-                tryNextUrl();
-            };
-        }
-
         function openFullscreen(url) {
             const container = document.getElementById('fullscreenContainer');
             const frame = document.getElementById('fullscreenFrame');
-            
+
             frame.src = url;
             container.style.display = 'block';
-            
+
             history.pushState({fullscreen: true, url: url}, '', window.location.href);
-            
+
             setTimeout(() => {
                 if (container.requestFullscreen) {
                     container.requestFullscreen().catch(() => {});
@@ -569,7 +513,7 @@
                     container.webkitRequestFullscreen();
                 }
             }, 500);
-            
+
             haptic();
             showToast('↩️ للخروج اضغط زر الرجوع');
         }
@@ -577,11 +521,11 @@
         function closeFullscreen() {
             const container = document.getElementById('fullscreenContainer');
             const frame = document.getElementById('fullscreenFrame');
-            
+
             if (document.fullscreenElement) {
                 document.exitFullscreen().catch(() => {});
             }
-            
+
             frame.src = '';
             container.style.display = 'none';
         }
@@ -653,33 +597,35 @@
             saveLinks(); renderLinks(); showToast('🗑️ تم الحذف');
         }
 
-        // دوال السحب والإفلات
+        // ===== دوال السحب والإفلات المُصلحة =====
         function initTouchDrag(card, linkId) {
             let touchStartY = 0;
             let touchStartX = 0;
             let touchMoved = false;
-            
+            let currentTouchId = null;
+
             card.addEventListener('touchstart', function(e) {
                 const target = e.target;
+                // نسمح بالسحب من أي مكان في البطاقة ما عدا الأزرار والعناوين والصور
                 if (target.closest('button') || target.closest('.link-title') || target.closest('img')) {
                     return;
                 }
-                
+
                 const touch = e.touches[0];
                 touchStartY = touch.clientY;
                 touchStartX = touch.clientX;
                 touchMoved = false;
-                
+                currentTouchId = touch.identifier;
+
                 longPressDragTimer = setTimeout(() => {
                     isDragMode = true;
                     card.classList.add('dragging');
-                    card.setAttribute('draggable', 'true');
                     haptic();
                     if (navigator.vibrate) navigator.vibrate([50]);
                     showToast('↕️ اسحب البطاقة لتغيير مكانها');
                 }, 500);
             }, {passive: false});
-            
+
             card.addEventListener('touchmove', function(e) {
                 if (!isDragMode) {
                     const touch = e.touches[0];
@@ -688,48 +634,66 @@
                     }
                     return;
                 }
-                
+
                 e.preventDefault();
                 touchMoved = true;
-                
-                const touch = e.touches[0];
+
+                const touch = Array.from(e.touches).find(t => t.identifier === currentTouchId) || e.touches[0];
+
+                // ✅ الخدعة: نخفي البطاقة المسحوبة مؤقتاً حتى نرى ما تحتها
+                card.style.visibility = 'hidden';
                 const elementUnderTouch = document.elementFromPoint(touch.clientX, touch.clientY);
+                card.style.visibility = '';
+
                 const targetCard = elementUnderTouch?.closest('.draggable-card');
-                
+
                 document.querySelectorAll('.drag-over').forEach(c => c.classList.remove('drag-over'));
-                
+
                 if (targetCard && targetCard !== card && !targetCard.classList.contains('dragging')) {
                     targetCard.classList.add('drag-over');
                 }
             }, {passive: false});
-            
+
             card.addEventListener('touchend', function(e) {
                 clearTimeout(longPressDragTimer);
-                
+
                 if (isDragMode && touchMoved) {
-                    const touch = e.changedTouches[0];
+                    const touch = Array.from(e.changedTouches).find(t => t.identifier === currentTouchId) || e.changedTouches[0];
+
+                    // ✅ الخدعة نفسها عند رفع الإصبع
+                    card.style.visibility = 'hidden';
                     const elementUnderTouch = document.elementFromPoint(touch.clientX, touch.clientY);
+                    card.style.visibility = '';
+
                     const targetCard = elementUnderTouch?.closest('.draggable-card');
-                    
+
                     if (targetCard && targetCard !== card) {
                         const targetId = parseInt(targetCard.dataset.linkId);
                         handleDropTouch(linkId, targetId);
                     }
                 }
-                
+
                 card.classList.remove('dragging');
-                card.setAttribute('draggable', 'false');
                 document.querySelectorAll('.drag-over').forEach(c => c.classList.remove('drag-over'));
                 isDragMode = false;
+                currentTouchId = null;
+            });
+
+            card.addEventListener('touchcancel', function(e) {
+                clearTimeout(longPressDragTimer);
+                card.classList.remove('dragging');
+                document.querySelectorAll('.drag-over').forEach(c => c.classList.remove('drag-over'));
+                isDragMode = false;
+                currentTouchId = null;
             });
         }
 
         function handleDropTouch(draggedId, targetId) {
             if (draggedId === targetId) return;
-            
+
             const draggedIndex = links.findIndex(l => l.id === draggedId);
             const targetIndex = links.findIndex(l => l.id === targetId);
-            
+
             if (draggedIndex !== -1 && targetIndex !== -1) {
                 const [removed] = links.splice(draggedIndex, 1);
                 links.splice(targetIndex, 0, removed);
@@ -773,7 +737,6 @@
                 const isStatsOpen = openStatsId === link.id;
 
                 return `<div class="draggable-card relative ${bgColor} rounded-2xl p-4 shadow-sm border ${link.pinned ? 'border-amber-400 dark:border-amber-500/50 shadow-amber-500/5' : 'border-gray-200 dark:border-gray-800/80'} overflow-visible transition-all"
-                    draggable="false"
                     data-link-id="${link.id}">
                     <div class="absolute top-0 right-0 left-0 h-1 bg-gradient-to-r ${gradient}"></div>
 
@@ -791,7 +754,7 @@
                                     data-link-url="${safeUrl}"
                                     data-link-name="${safeName}"
                                     title="اضغط للفتح - اضغط مطولاً للنسخ - اسحب لتغيير المكان">${safeName}</h3>
-                                
+
                                 <div class="relative mr-auto">
                                     <button onclick="event.stopPropagation(); toggleDropdown(${link.id}); haptic();" class="dropdown-toggle w-8 h-8 rounded-lg bg-gray-700/80 dark:bg-gray-600/80 flex items-center justify-center hover:bg-gray-600 dark:hover:bg-gray-500 transition-all shrink-0">
                                         <span>▼</span>
@@ -816,7 +779,7 @@
                                         <button onclick="event.stopPropagation(); togglePin(${link.id}); haptic();" class="w-full px-4 py-2.5 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-3 transition-all">
                                             <span class="w-4 text-center">📌</span> ${link.pinned ? 'إلغاء التثبيت' : 'تثبيت'}
                                         </button>
-                                        
+
                                         <div class="border-t border-gray-100 dark:border-gray-700">
                                             <button onclick="event.stopPropagation(); toggleStats(${link.id}); haptic();" class="stats-toggle w-full px-4 py-2.5 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-3 transition-all">
                                                 <span class="w-4 text-center">ℹ️</span> معلومات الرابط
@@ -843,7 +806,7 @@
                                             </div>
                                             ` : ''}
                                         </div>
-                                        
+
                                         <button onclick="event.stopPropagation(); deleteLink(${link.id}); haptic();" class="w-full px-4 py-2.5 text-xs text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 flex items-center gap-3 transition-all border-t border-gray-100 dark:border-gray-700">
                                             <span class="w-4 text-center">🗑️</span> حذف
                                         </button>
@@ -856,24 +819,24 @@
                     </div>
                 </div>`;
             }).join('');
-            
+
             updateCount();
             attachLinkEvents();
             attachTouchDragEvents();
         }
-        
+
         function attachLinkEvents() {
             const linkTitles = document.querySelectorAll('.link-title');
-            
+
             linkTitles.forEach(title => {
                 const linkId = parseInt(title.dataset.linkId);
                 const linkUrl = title.dataset.linkUrl;
                 let longPressTimer = null;
                 let isLongPress = false;
-                
+
                 const newTitle = title.cloneNode(true);
                 title.parentNode.replaceChild(newTitle, title);
-                
+
                 newTitle.addEventListener('click', function(e) {
                     if (isLongPress) {
                         isLongPress = false;
@@ -883,7 +846,7 @@
                     }
                     trackOpen(linkId, linkUrl);
                 });
-                
+
                 newTitle.addEventListener('mousedown', function(e) {
                     isLongPress = false;
                     longPressTimer = setTimeout(() => {
@@ -893,7 +856,7 @@
                         if (navigator.vibrate) navigator.vibrate([30, 50, 30]);
                     }, 600);
                 });
-                
+
                 newTitle.addEventListener('touchstart', function(e) {
                     isLongPress = false;
                     longPressTimer = setTimeout(() => {
@@ -903,11 +866,11 @@
                         if (navigator.vibrate) navigator.vibrate([30, 50, 30]);
                     }, 600);
                 });
-                
+
                 const cancelLongPress = () => {
                     clearTimeout(longPressTimer);
                 };
-                
+
                 newTitle.addEventListener('mouseup', cancelLongPress);
                 newTitle.addEventListener('mouseleave', cancelLongPress);
                 newTitle.addEventListener('touchend', cancelLongPress);
@@ -977,7 +940,7 @@
         function showToast(message) {
             const toast = document.getElementById('toast');
             document.getElementById('toastMessage').textContent = message;
-            
+
             toast.classList.remove('translate-y-20','opacity-0');
             setTimeout(() => toast.classList.add('translate-y-20','opacity-0'), 2500);
         }
